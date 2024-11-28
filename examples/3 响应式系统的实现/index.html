@@ -7,6 +7,7 @@
   <title>index.html </title>
 </head>
 <body>
+  
   <div id="root"></div>
 
   <!-- <script src="1.js"></script>
@@ -29,6 +30,28 @@
       () => {
         console.log('effect run.') // 会执行两次
         document.querySelector('#root').textContent = obj.text
+      }
+    )
+
+    setTimeout(() => {
+      obj.notExist = 'Hello vue.'
+    }, 1000)
+  </script> -->
+
+  <!-- <script src="3.js"></script>
+  <script>
+    effect(
+      // 副作用函数
+      () => {
+        console.log('effect run.') // 会执行两次
+        document.querySelector('#root').textContent = obj.text
+      }
+    )
+    effect(
+      // 副作用函数
+      () => {
+        console.log('effect run.') // 会执行两次
+        document.querySelector('#root').textContent = obj.text + obj.text2
       }
     )
 
@@ -110,9 +133,40 @@
     obj.foo++
   </script> -->
 
+  <!-- <script src="7.js"></script>
+  <script>
+    const sumRes = computed(()=>{
+      return obj.foo + obj.bar
+    })
+    effect(()=>{
+      console.log(sumRes.value)
+    })
+    obj.foo++
+
+    // 内部维护一个dirty值，解决多次取值不必要的计算问题
+    console.log(sumRes.value)
+    console.log(sumRes.value)
+    console.log(sumRes.value)
+  </script> -->
+  
+  <!-- <script src="8.js"></script>
+  <script>
+    watch(()=>obj.foo, (newValue, oldValue) => {
+      console.log(newValue, oldValue)
+    }, {
+      immediate: true
+    })
+
+    obj.foo++
+
+    setTimeout(() => {
+      obj.foo++
+    }, 200)
+  </script> -->
+
   <script src="9.js"></script>
   <script>
-    watch(obj, (newValue, oldValue, onInvalidate) => {
+    watch(()=>obj.foo, (newValue, oldValue, onInvalidate) => {
       console.log(newValue, oldValue)
       onInvalidate(() => {
         console.log('onInvalidate 执行了')

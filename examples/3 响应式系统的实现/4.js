@@ -5,7 +5,7 @@ let activeEffect
 function effect (fn) {
   // 当调用 effect() 函数时，将副作用函数 fn() 赋值给 activeEffect
   const effectFn = () => {
-    // 调用 cleanUp() 函数完成清除工作
+    // xxxx调用 cleanUp() 函数完成清除工作
     cleanUp(effectFn)
     // 当 effectFn 执行时，将其设置为当前激活的副作用函数
     activeEffect = effectFn
@@ -28,18 +28,18 @@ const obj = new Proxy(data, {
   // 拦截读取操作
   get (target, key) {
     track(target, key)
-
+    
     // 返回属性值
     return target[key]
   },
-
+  
   // 拦截设置操作
   set (target, key, value) {
     // 设置属性值
     target[key] = value
     
     trigger(target, key)
-
+    
     // 返回 true 表示设置操作成功
     return true
   }
@@ -91,6 +91,8 @@ function trigger (target, key) {
 function cleanUp (effectFn) {
   effectFn.deps.forEach(deps => {
     // 将 effectFn 从依赖集合中移除
+    console.log('🚀: ~ cleanUp ~ deps:', deps)
+    console.log('🚀: ~ cleanUp ~ effectFn:', effectFn)
     deps.delete(effectFn)
   })
 

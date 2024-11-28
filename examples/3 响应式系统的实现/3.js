@@ -69,7 +69,7 @@ function effect (fn) {
 const bucket = new WeakMap()
 
 // 原始数据
-const data = { text: 'Hello world.' }
+const data = { text: 'Hello world.', text2: 'Hello world2.' }
 // 对原始数据进行代理
 const obj = new Proxy(data, {
   // 拦截读取操作
@@ -117,6 +117,7 @@ function track (target, key) {
 
 function trigger (target, key) {
   // 根据 target 从 bucket 中取出所有的 depsMap
+  console.log('🚀: ~ trigger ~ bucket:', bucket)
   const depsMap = bucket.get(target)
 
   if (!depsMap) return true

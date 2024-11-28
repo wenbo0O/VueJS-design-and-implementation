@@ -139,15 +139,17 @@ function computed (getter) {
   // 用来缓存上一次计算的值
   let value
   // dirty 标志用来标识是否需要重新计算值
-  let dirty
+  let dirty = true
 
   const effectFn = effect(getter, {
     lazy: true,
     // 在调度器中将 dirty 设置为 true
-    shceduler () {
-      dirty = true
-      // 当计算属性的响应式数据变化时，手动调用 trigger() 函数触发响应
-      trigger(obj, 'value')
+    scheduler () {
+      if (!dirty){
+        dirty = true
+        // 当计算属性的响应式数据变化时，手动调用 trigger() 函数触发响应
+        trigger(obj, 'value')
+      }
     }
   })
   
@@ -155,9 +157,10 @@ function computed (getter) {
     get value () {
       if (dirty) {
         value = effectFn()
-        dirty = true
+        dirty = false
       }
       // 当读取 value 时，手动调用 track() 函数进行追踪
+      track(obj, 'value')
       return value
     }
   }
