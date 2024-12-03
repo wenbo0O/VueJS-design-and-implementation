@@ -1,62 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 </head>
+
 <body>
-  <!-- <script src="1.js"></script>
-  <script>
-    // const obj = { foo: NaN, bar: 2 }
+  <!-- <script src="1.js"></script> -->
+  <!-- remark 1:
+    实现 key in obj / for...in / delete的响应
+    NaN!==NaN 设置新值为NaN时避免不必要的更新
+  -->
+  <!-- <script>
+    const obj = { foo: NaN, bar: 2 }
 
-    // const p1 = reactive(obj)
+    const p1 = reactive(obj)
 
-    // effect(() => {
-    //   for (const key in p1) {
-    //     console.log(key)
-    //   }
-    // })
+    effect(() => {
+      for (const key in p1) {
+        console.log(`key:${key}, value:${p1[key]}`)
+      }
+    })
 
-    // p1.foo = NaN
-
-
-     const obj = { name: 'obj' }
-     const proto = { name: 'proto', bar: 1 }
-     const child = reactive(obj)
-     child.name = 'child'
-     const parent = reactive(proto)
-     parent.name = 'parent'
-     // 使用 parent 作为 child 的原型
-     Object.setPrototypeOf(child, parent)
-
-     effect(() => {
-      console.log(child.bar)
-     })
-
-     child.bar = 2
-
-     console.log(child[Symbol.for(RAW)] === obj)
-     console.log(parent[Symbol.for(RAW)] === proto)
+    p1.foo = NaN
   </script> -->
 
+  <!-- 实现继承原型对象的数据响应，避免原型不必要的更新 -->
+  <!-- <script>
+    const obj = { name: 'obj' }
+    const proto = { name: 'proto', bar: 1 }
+    const child = reactive(obj)
+    child.name = 'child'
+    const parent = reactive(proto)
+    parent.name = 'parent'
+    // 使用 parent 作为 child 的原型
+    Object.setPrototypeOf(child, parent)
+
+    effect(() => {
+    console.log(child.bar)
+    })
+
+    child.bar = 2
+
+    console.log(child[Symbol.for(RAW)] === obj)
+    console.log(parent[Symbol.for(RAW)] === proto)
+  </script> -->
+
+  <!-- remark 2:
+    实现浅代理和深代理
+  -->
   <!-- <script src="2.js"></script>
   <script>
     const obj = {
       foo: {
-        bar: 1
-      }
+        bar: 1,
+        bar2: {
+          a: 1
+        }
+      },
+      footer: 999
     }
     const p = reactive(obj)
+    // const p2 = shallowReactive(obj)
 
     effect(() => {
-      console.log(p.foo.bar)
+      console.log(p.foo.bar2.a)
     })
 
-    p.foo.bar = 2
+    p.foo.bar2.a = 200
   </script> -->
 
+  <!-- remark 3:
+    实现只读
+  -->
+  <!-- <script src="3.js"></script>
+  <script>
+    const obj = {
+      foo: {
+        bar: 1
+      },
+      footer: 999
+    }
+
+    const p = readonly(obj)
+    const p2 = shallowReadonly(obj)
+    p.foo = 2
+    console.log('🚀: ~ p:', p)
+    p2.foo = 2
+    delete p.foo
+    delete p2.foo
+    console.log('🚀: ~ p2:', p2)
+  </script> -->
+
+  <!-- remark 4:
+    代理数组
+    触发length的副作用函数
+    ownKeys钩子拦截for...in，存储ITERATE_KEY依赖
+  -->
+  <!-- <script src="4.js"></script>
+  <script>
+    const arr = reactive([0, 1, 2, 3, 4, 5])
+    effect(() => {
+      for (const key in arr)
+      console.log(`for...in：${arr}`)
+    })
+    arr[100] = 100
+  </script> -->
+
+  <!-- remark 5:
+    优化
+    for...of 循环会触发Symbol.iterator 属性，则需要过滤该key
+  -->
   <!-- <script src="5.js"></script>
   <script>
     const arr = reactive([1, 2, 3, 4, 5])
@@ -76,6 +133,9 @@
     arr.length = 0
   </script> -->
 
+  <!-- remark 6:
+    重写 Array.prototype['includes', 'indexOf', 'lastIndexOf']
+  -->
   <!-- <script src="6.js"></script>
   <script>
     const obj = {}
@@ -91,19 +151,27 @@
     console.log('lastIndexOf proxy', arr.lastIndexOf(arr[0]))
   </script> -->
 
+  <!-- remark 7:
+    重写 Array.prototype['push', 'pop', 'unshift', 'shift', 'splice']
+  -->
   <!-- <script src="7.js"></script>
   <script>
     const arr = reactive([])
 
     effect(() => {
       arr.push(1)
+      console.log('🚀: ~ effect ~ arr:', arr)
     })
 
     effect(() => {
       arr.push(2)
+      console.log('🚀: ~ effect2 ~ arr:', arr)
     })
   </script> -->
 
+  <!-- remark 8:
+    Set与Proxy之间的关系
+  -->
   <!-- <script>
     const s = new Set([1, 2, 3])
     const p = new Proxy(s, {
@@ -111,79 +179,89 @@
         if (key === 'size') {
           // 如果读取的是 size 属性，
           // 指定 receiver 为原始对象 target
+          // remark：因为代理对象不存在内部槽 [[SetData]]。 原始对象才有
           return Reflect.get(target, key, target)
         }
 
+        // return Reflect.get(target, key, receiver)
+        
         // 将方法与原始数据对象 target 绑定后返回
+        // remark：将原始对象的方法进行绑定，如delete() 等方法
         return target[key].bind(target)
       }
     })
 
     p.delete(1)
+    console.log('🚀: ~ p:', p.size)
   </script> -->
 
+  <!-- remark 9:
+    代理Set/Map
+    实现forEach/for...of的响应式
+  -->
   <script src="8.js"></script>
   <script>
-    // const p = reactive(new Set([1, 2, 3]))
-    
-    // effect(() => {
-    //   console.log(p.size)
-    // })
+    /* const p = reactive(new Set([1, 2, 3]))
 
-    // p.add(1)
+    effect(() => {
+      console.log('p', p.size)
+    })
 
-    // const p = reactive(new Map([['key', 1]]))
+    p.add(1) */
 
-    // effect(() => {
-    //   console.log(p.get('key'))
-    // })
+    /* const p3 = reactive(new Map([['key', 1]]))
 
-    // p.set('key', 2)
+    effect(() => {
+      console.log('p3', p3.get('key'))
+    })
 
-    // // 污染原始数据
-    // // 原始数据 m
-    // const m = new Map()
-    // // p1 是 m 的代理对象
-    // const p1 = reactive(m)
-    // // p2 是另一个代理对象
-    // const p2 = reactive(new Map())
+    p3.set('key', 2) */
 
-    // // 为 p1 设置一个键值对，值是代理对象 p2
-    // p1.set('p2', p2)
+    // 污染原始数据
+    // 原始数据 m
+    /* const m = new Map()
+    // p1 是 m 的代理对象
+    const p1 = reactive(m)
+    // p2 是另一个代理对象
+    const p2 = reactive(new Map())
 
-    // effect(() => {
-    //   // 注意，这里我们通过原始数据 m 来访问 p2
-    //   console.log(m.get('p2').size)
-    // })
+    // 为 p1 设置一个键值对，值是代理对象 p2
+    p1.set('p2', p2)
 
-    // // 注意，这里我们通过原始数据 m 为 p2 设置一个键值对
-    // m.get('p2').set('foo', 1)
+    effect(() => {
+      // 注意，这里我们通过原始数据 m 来访问 p2
+      console.log(m.get('p2').size)
+    })
 
-    // const p = reactive(new Map([
-    //   [{key: 1}, { value: 1 }]
-    // ]))
+    // 注意，这里我们通过原始数据 m 为 p2 设置一个键值对
+    m.get('p2').set('foo', 1) */
 
-    // effect(() => {
-    //   p.forEach((value, key, m) => {
-    //     console.log(value) // { value: 1 }
-    //     console.log(key) // { key: 1 }
-    //   })
-    // })
+    /* const p = reactive(new Map([
+      [{key: 1}, { value: 1 }]
+    ]))
 
-    // p.set({key: 2}, { value: 2 }) // 能够触发响应
+    effect(() => {
+      p.forEach((value, key, m) => {
+        console.log(value) // { value: 1 }
+        console.log(key) // { key: 1 }
+      })
+    })
 
-    const p = reactive(new Map([
+    p.set({key: 2}, { value: 2 }) // 能够触发响应 */
+
+    const p4 = reactive(new Map([
       ['key1', 'value1'],
       ['key2', 'value2']
     ]))
 
     effect(() => {
-      for (const value of p.keys()) {
+      for (const value of p4.keys()) {
         console.log(value)
       }
     })
 
-    p.set('key2', 'value3') // 这是一个 SET 的类型，它修改了 key2 的值
+    p4.set('key2', 'value3') // 这是一个 SET 的类型，它修改了 key2 的值
   </script>
 </body>
+
 </html>

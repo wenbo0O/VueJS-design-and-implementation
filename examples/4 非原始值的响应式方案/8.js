@@ -89,6 +89,7 @@ let shouldTrack = true
   }
 })
 
+// remarker: 对Map和Set类型的数据进行重写
 // 声明一个对象，将自定义的 add 方法定义到该对象下
 const mutableInstrumentations = {
   add (key) {
@@ -182,7 +183,7 @@ const mutableInstrumentations = {
       callback.call(thisArg, wrap(v), wrap(k), this)
     })
   },
-
+  // 继承可迭代对象，并收集依赖 for...of
   [Symbol.iterator]: iterationMethod,
 
   entries: iterationMethod,
@@ -196,7 +197,7 @@ const mutableInstrumentations = {
 function iterationMethod () {
   const target = this[Symbol.for(RAW)]
 
-  // 获取原始迭代器方法
+  // *获取原始迭代器方法
   const itr = target[Symbol.iterator]()
 
   const wrap = val => typeof val === 'object' && val !== null
@@ -208,17 +209,19 @@ function iterationMethod () {
 
   // 返回自定义的迭代器
   return {
+    // 迭代器协议
     next () {
       const { value, done } = itr.next()
 
       return {
         // 如果 value 不是 undefined 则对其进行包裹
+        // *remarks：迭代器处理的是键值对
         value: value ? [wrap(value[0]), wrap(value[1])] : value,
         done
       }
     },
 
-    // 实现可迭代协议
+    // 可迭代协议
     [Symbol.iterator] () {
       return this
     }
@@ -228,7 +231,7 @@ function iterationMethod () {
 function valuesIterationMethod () {
   const target = this[Symbol.for(RAW)]
 
-  // 通过 target.values 获取原始迭代器方法
+  // *通过 target.values 获取原始迭代器方法
   const itr = target.values()
 
   const wrap = val => typeof val === 'object' && val !== null
@@ -245,6 +248,7 @@ function valuesIterationMethod () {
 
       return {
         // value 是值，而非键值对，所以只需要包裹 value 即可
+        // *remarks：处理的是值
         value: wrap(value),
         done
       }
@@ -311,7 +315,7 @@ function createReactive (obj, isShallow = false, isReadonly = false) {
         if (key === Symbol.for(RAW)) {
           return target
         }
-
+        // remark：为Set/Map 获取size属性时添加依赖收集，同时任何新增删除会对size产生副作用
         if (key === 'size') {
           // 调用 track() 函数进行依赖追踪
           track(target, ITERATE_KEY)
@@ -321,6 +325,7 @@ function createReactive (obj, isShallow = false, isReadonly = false) {
         }
 
         // 返回定义在 mutableInstrumentations 对象下的方法
+        // remark：如p.delete()
         return mutableInstrumentations[key]
       }
       // 代理对象可以通过 Symbol.for(RAW) 属性访问原始数据

@@ -71,6 +71,7 @@ function createReactive (obj, isShallow = false) {
         return res
       }
 
+      // 递归创建代理对象
       if (typeof res === 'object' && res !== null) {
         return reactive(res)
       }
@@ -164,7 +165,7 @@ function track (target, key) {
   if (!deps) {
     depsMap.set(key, (deps = new Set()))
   }
-
+  // console.log('🚀: ~ track ~ depsMap:', depsMap)
   // 最后将副作用函数存储进 deps 里面
   deps.add(activeEffect)
 

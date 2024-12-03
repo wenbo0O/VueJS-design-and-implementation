@@ -63,6 +63,7 @@ function createReactive (obj, isShallow = false, isReadonly = false) {
       }
       // 非只读的时候才需要建立响应联系
       // 如果 key 的类型是 symbol，则不进行追踪
+      // for...of 循环会触发Symbol.iterator 属性，则需要过滤该key
       if (!isReadonly && typeof key !== 'symbol') {
         track(target, key)
       }

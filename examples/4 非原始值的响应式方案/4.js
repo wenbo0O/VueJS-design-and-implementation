@@ -238,6 +238,7 @@ function trigger (target, key, type, newVal) {
   // 当操作类型为 ADD 且目标对象是数组时，
   // 应取出并执行与 length 相关联的副作用函数
   if (type === TriggerType.ADD && Array.isArray(target)) {
+    // 如：effect(() =>arr.length)，则执行length的副作用函数
     const lengthEffects = depsMap.get('length')
     lengthEffects && lengthEffects.forEach(effectFn => {
       if (effectFn !== activeEffect) {
@@ -247,11 +248,13 @@ function trigger (target, key, type, newVal) {
   }
 
   // 如果操作目标是数组，并且修改了 length 属性
+  // 如：arr.length = 0 则key为length
   if (Array.isArray(target) && key === 'length') {
     // 对于索引大于或等于新的 length 值的元素，
     // 需要把所有相关联的副作用函数取出并添加到 effectsToRun 中待执行
     depsMap.forEach((effects, key) => {
       if (key >= newVal) {
+        // 如：设置了arr.length=100，则arr[100/101/102]需要重新执行副作用函数
         effects.forEach(effectFn => {
           if (effectFn !== activeEffect) {
             effectsToRun.add(effectFn)

@@ -88,7 +88,7 @@ function createReactive (obj, isShallow = false, isReadonly = false) {
     set (target, key, newVal, receiver) {
       // 如果是只读的，则打印警告信息
       if (isReadonly) {
-        console.warn(`属性 ${key} 是只读的`)
+        console.warn(`属性 ${key} 是只读的 -- set`)
         return true
       }
 
@@ -132,7 +132,7 @@ function createReactive (obj, isShallow = false, isReadonly = false) {
     deleteProperty (target, key) {
       // 如果是只读的，则打印警告信息
       if (isReadonly) {
-        console.warn(`属性 ${key} 是只读的`)
+        console.warn(`属性 ${key} 是只读的 -- del`)
         return true
       }
 

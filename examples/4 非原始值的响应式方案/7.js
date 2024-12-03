@@ -77,7 +77,7 @@ let shouldTrack = true
   const originMethod = Array.prototype[method]
 
   arrayInstrumentations[method] = function (...args) {
-    // 在调用原始方法之前，先禁止追踪
+    // 在调用原始方法之前，先禁止追踪 避免死循环
     shouldTrack = false
 
     let res = originMethod.apply(this, args)
