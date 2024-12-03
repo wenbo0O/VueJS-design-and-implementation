@@ -1,3 +1,11 @@
+<!--
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2024-11-20 17:18:24
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2024-12-03 17:25:00
+ * @FilePath: \VueJS-design-and-implementation\examples\5 原始值的响应式方案\index.html
+ * @Description: 
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,34 +20,27 @@
   <script src="1.js"></script>
 
   <script>
-    // const refVal = ref(1)
-    // effect(() => {
-    //   console.log(refVal.value)
-    // })
+    /**
+     * remark 1:
+     * 使用 wrapper + reactive 实现 ref
+     */
+    /* const refVal = ref(1)
+    effect(() => {
+      console.log(refVal.value)
+    })
+    refVal.value = 2 */
 
-    // refVal.value = 2
-
+    /**
+     * remark 2:
+     * 使用 toRefs/toRef 实现响应式对象映射，用 get 函数获取响应式对象
+     * 使用 proxyRefs 判断 __v_isRef 属性，实现自动脱 ref
+     */
     const obj = reactive({ foo: 1, bar: 2 })
-
-    const newObj = {
-      foo: {
-        get value () {
-          return obj.foo
-        }
-      },
-
-      var: {
-        get value () {
-          return obj.bar
-        }
-      }
-    }
-
+    const newObj = proxyRefs({ ...toRefs(obj) })
     effect(() => {
       console.log(newObj.foo)
     })
-
-    obj.foo = 10
+    newObj.foo = 10
   </script>
 </body>
 </html>
