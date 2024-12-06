@@ -1,24 +1,72 @@
+<!--
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2024-11-20 17:18:24
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2024-12-06 11:06:04
+ * @FilePath: \VueJS-design-and-implementation\examples\7 挂载与更新\index.html
+ * @Description: 
+-->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>挂载与更新</title>
 </head>
+
 <body>
   <div id="app"></div>
   <input type="text" id="my-input" value="foo" />
 
   <script src="../../@vue/reactivity.js"></script>
-  <!-- <script src="2.js"></script>
 
+  <!-- 多个子节点标签 -->
+  <!-- <script src="1.js"></script>
+  <script>
+    // remark：注册浏览器平台上的渲染器
+    const renderer = createRenderer({
+      // 用于创建元素
+      createElement(tag) {
+        return document.createElement(tag)
+      },
+      // 用于设置元素的文本节点
+      setElementText (el, text) {
+        el.textContent = text
+      },
+      // 用于在给定的 parent 下添加指定元素
+      insert (el, parent, anchor = null) {
+        parent.insertBefore(el, anchor)
+      }
+    })
+    
+    const vnode = {
+      type: 'h1',
+      children: [
+        {
+          type: 'u',
+          children: 'hello'
+        },
+        {
+          type: 'i',
+          children: ' world'
+        }
+      ]
+    }
+
+    renderer.render(vnode, document.querySelector('#app'))
+  </script> -->
+
+  <!-- 标签的简单属性 -->
+  <!-- <script src="2.js"></script>
   <script>
     const vnode = {
       type: 'div',
       // 使用 props 描述一个元素的属性
       props: {
-        id: 'foo'
+        id: 'foo',
+        style: 'color: red'
       },
       children: [
         {
@@ -31,6 +79,7 @@
     renderer.render(vnode, document.querySelector('#app'))
   </script> -->
 
+  <!-- 序列化处理class属性 -->
   <!-- <script src="3.js"></script>
   <script>
     const class1 = normalizeClass('foo bar')
@@ -50,6 +99,65 @@
     console.log('class3', class3)
   </script> -->
 
+  <!-- 卸载操作 -->
+  <!-- <script src="4.js"></script>
+  <script>
+    const vnode = {
+      type: 'div',
+      children: 'div'
+    }
+    const vnode2 = {
+      type: 'h1',
+      children: 'h1'
+    }
+
+    renderer.render(vnode, document.querySelector('#app'))
+    // renderer.render(null, document.querySelector('#app'))
+    renderer.render(vnode2, document.querySelector('#app'))
+  </script> -->
+  <!-- 更新操作 todo... -->
+  <!-- <script>
+    const vnode = {
+      type: 'div',
+      children: 'div'
+    }
+    const vnode2 = {
+      type: 'div',
+      children: 'newdiv'
+    }
+
+    renderer.render(vnode, document.querySelector('#app'))
+    renderer.render(vnode2, document.querySelector('#app'))
+  </script> -->
+
+  <!-- 事件的基本绑定 -->
+  <!-- <script src="5.js"></script>
+  <script>
+    const vnode = {
+      type: 'p',
+      props: {
+        // 使用 onXxx 描述事件
+        onClick: [
+          // 第一个事件处理函数
+          () => {
+            alert('clicked 1')
+          },
+          // 第二个事件处理函数
+          () => {
+            alert('clicked 2')
+          }
+        ],
+        onmouseout: function () {
+          console.log('🚀: ~ onmouseout:', this)
+        }
+      },
+      children: 'text'
+    }
+
+    renderer.render(vnode, document.querySelector('#app'))
+  </script> -->
+
+  <!-- 事件冒泡与更新时机问题 -->
   <!-- <script src="6.js"></script>
   <script>
     const { effect, ref } = VueReactivity
@@ -79,9 +187,9 @@
       // 渲染 vnode
       renderer.render(vnode, document.querySelector('#app'))
     })
-
   </script> -->
 
+  <!-- 文本节点、注释节点和Fragment(片段) 节点 -->
   <script src="7.js"></script>
   <script>
     const { ref, effect } = VueReactivity
@@ -113,7 +221,8 @@
         comment: '这是 comment 节点',
         text: '这是 text 节点'
       }
-    }, 5000)
+    }, 1000)
   </script>
 </body>
+
 </html>

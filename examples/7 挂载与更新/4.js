@@ -12,6 +12,7 @@ function createRenderer (options) {
       // 新 vnode 存在，将其与旧 vnode 一起传递给 patch 函数，进行更新
       patch(container._vnode, vnode, container)
     } else {
+      // 手动卸载 vnode传null
       if (container._vnode) {
         unmount(container._vnode)
       }
@@ -31,6 +32,7 @@ function createRenderer (options) {
   }
 
   function patch (n1, n2, container) {
+    console.log('🚀: ~ patch ~ n1, n2:', n1, n2)
     // n1 存在，则对比 n1 和 n2 的类型
     if (n1 && n1.type !== n2.type) {
       // 如果两者类型不一致，则直接将旧 vnode 卸载
@@ -45,6 +47,8 @@ function createRenderer (options) {
       if (!n1) {
         mountElement(n2, container)
       } else {
+        // 更新
+        console.log('需要更新')
         // patchElement(n1, n2)
       }
     } else if (typeof type === 'object') {

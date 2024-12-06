@@ -90,6 +90,7 @@ function createRenderer (options) {
 
   function patchElement (n1, n2) {
     const el = n2.el = n1.el
+    console.log('🚀: ~ patchElement ~ el:', el)
     const oldProps = n1.props
     const newProps = n2.props
 
@@ -109,6 +110,11 @@ function createRenderer (options) {
     patchChildren(n1, n2, el)
   }
 
+  /**
+   * @n1 oldNode
+   * @n2 newNode
+   * @container el
+   */
   function patchChildren (n1, n2, container) {
     // 判断新子节点的类型是否是文本节点
     if (typeof n2.children === 'string') {
