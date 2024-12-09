@@ -135,6 +135,7 @@ function createRenderer (options) {
   }
 
   function patchElement (n1, n2) {
+    // remark：使新节点可以继承旧节点上的真实DOM引用，新节点也将持有对真实 DOM的引用
     const el = n2.el = n1.el
     const oldProps = n1.props
     const newProps = n2.props
@@ -193,11 +194,21 @@ function createRenderer (options) {
               // 一旦找到可复用的节点，则将变量 find 的值设为 true
               find = true
               patch(oldVnode, newVnode, container)
-
+              // remark：找到oldVnode的下标
+              /**
+               * new --> old
+               * p3 --> p1  索引0
+               * p1 --> p2  索引1
+               * p2 --> p3  索引2
+               */
+              // i+1  newVnode的key
+              // j oldVnode的索引
               if (j < lastIndex) {
+                // remark：以p3 lastIndex=2为基准。p1 j=0；p2 j=1
                 // 如果当前找到的节点在旧 children 中的索引小于最大索引值 lastIndex
                 // 说明该节点对应的真实 DOM 需要移动
                 // 先获取 newVnode 的前一个 vnode，即 prevVnode
+                // i为新节点真正的顺序
                 const prevVNode = newChildren[i - 1]
 
                 // 如果 prevVNode 不存在，则说明当前 newVNode 是第一个节点，它不需要移动
@@ -210,6 +221,7 @@ function createRenderer (options) {
                   insert(newVnode.el, container, anchor)
                 }
               } else {
+                // remark：第一次遍历会走到这里，以新newChildren的第一个子元素为基准不做移动
                 // 如果当前找到的节点在旧 children 中的索引不小于最大索引值
                 // 则更新 lastIndex 的值
                 lastIndex = j
