@@ -205,6 +205,7 @@ function createRenderer (options) {
     let newStartVNode = newChildren[newStartIdx]
     let newEndVNode = newChildren[newEndIdx]
 
+    // remark：四指针循环交叉比对，终止条件 头指针大于等于尾指针
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
       // 增加两个判断分支，如果头尾部节点为 undefined，则说明该节点已经被处理过了，直接跳到下一个位置
       if (!oldStartVNode) {
@@ -212,6 +213,7 @@ function createRenderer (options) {
       } else if (!oldEndVNode) {
         oldEndVNode = oldChildren[--oldEndIdx]
       } else if (oldStartVNode.key === newStartVNode.key) {
+        // remark：o头n头相等，递增指针即可
         // 第 ① 步: 旧头部节点 oldStartVNode 与新头部节点 newStartVNode 比较
 
         // 调用 patch 函数进行打补丁
@@ -221,6 +223,7 @@ function createRenderer (options) {
         oldStartVNode = oldChildren[++oldStartIdx]
         newStartVNode = newChildren[++newStartIdx]
       } else if (oldEndVNode.key === newEndVNode.key) {
+        // remark：o尾n尾相等，递减指针即可
         // 第 ② 步: 旧尾部节点 oldEndVNode 与新尾部节点 newEndVNode 比较
 
         // 节点在新的顺序中仍然处于尾部，不需要移动，但仍需打补丁
@@ -230,6 +233,7 @@ function createRenderer (options) {
         oldEndVNode = oldChildren[--oldEndIdx]
         newEndVNode = newChildren[--newEndIdx]
       } else if (oldStartVNode.key === newEndVNode.key) {
+        // remark：o头n尾相等，把o头移到真实节点指针后边
         // 第 ③ 步: 旧头部节点 oldStartVNode 与新尾部节点 newEndVNode 比较
 
         // 调用 patch 函数在 oldStartVNode 和 newEndVNode 之间打补丁
@@ -243,6 +247,7 @@ function createRenderer (options) {
         oldStartVNode = oldChildren[++oldStartIdx]
         newEndVNode = newChildren[--newEndIdx]
       } else if (oldEndVNode.key === newStartVNode.key) {
+        // remark：o尾n头相等，把o尾移到真实节点指针前面
         // 第 ④ 步: 旧尾部节点 oldEndVNode 与新头部节点 newStartVNode 比较
 
         // 仍然需要调用 patch 函数进行打补丁
@@ -270,6 +275,7 @@ function createRenderer (options) {
           // 由于位置 idxInOld 处的节点所对应的真实 DOM 已经移动到了别处，因此将其设置为 undefined
           oldChildren[idxInOld] = undefined
         } else {
+          // remark：未找到时则认为是新增节点
           // 将 newStartVNode 作为新节点挂载到头部，使用当前头部节点 oldStartVNode.el 作为锚点
           patch(null, newStartVNode, container, oldStartVNode.el)
         }

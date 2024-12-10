@@ -280,11 +280,19 @@ function createRenderer (options) {
 
     // 循环结束后检查索引值的情况
     if (oldEndIdx < oldStartIdx && newStartIdx <= newEndIdx) {
+      /**
+       * remark：给新增元素打补丁
+       * 循环结束后 oldChildren 已经被检索完成，但 newChildren 还没有完成（指针还未越界），说明有新增遗漏
+       * 用例为：
+       * newChildren：[p-4, p-1, p-2, p-3]
+       * oldChildren：[p-1, p-2, p-3]
+       */
       // 如果满足条件，说明有新的节点遗留，需要挂载它们
       for (let i = newStartIdx; i <= newEndIdx; i++) {
         patch(null, newChildren[i], container, oldStartVNode.el)
       }
     } else if (newEndIdx < newStartIdx && oldStartIdx <= oldEndIdx) {
+      // remark：说明 oldChildren 的指针还未越界，说明 oldChildren 有多余元素
       // 移除操作
       for (let i = oldStartIdx; i <= oldEndIdx; i++) {
         unmount(oldChildren[i])

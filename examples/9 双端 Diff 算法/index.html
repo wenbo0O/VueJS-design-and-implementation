@@ -4,14 +4,22 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>简单的 Diff 算法</title>
+  <title>双端 Diff 算法</title>
 </head>
 <body>
   <div id="app"></div>
 
   <script src="../../@vue/reactivity.js"></script>
+
+  <!-- 
+    四指针循环交叉比对，终止条件 头指针大于等于尾指针
+    *理想情况下：
+    1. o头n头相等，递增指针即可
+    2. o头n尾相等，递减指针即可
+    3. o头n尾相等，把o头移到真实节点指针后边
+    4. o尾n头相等，把o尾移到真实节点指针前面
+  -->
   <!-- <script src="1.js"></script>
-
   <script>
     const { ref, effect } = VueReactivity
 
@@ -39,9 +47,13 @@
       ]
     }, 2000)
   </script> -->
-  
-  <!-- <script src="5.js"></script>
 
+  <!--
+    *非理想情况下：
+    1~4 都无法命中时
+    则进入5. 从oldNodes中查找与newNodes头节点相同的节点，插入到o头的前边
+  -->
+  <!-- <script src="2.js"></script>
   <script>
     const { ref, effect } = VueReactivity
 
@@ -70,8 +82,13 @@
     }, 2000)
   </script> -->
   
-  <!-- <script src="5.js"></script>
-
+  <!--
+    *非理想情况下：
+    1~4 都无法命中时
+    进入5. 在oldNodes中查找与newNodes头节点相同的节点，未找到。
+    则认为该n节点为新增节点，插入到o头节点之前
+  -->
+  <!-- <script src="3.js"></script>
   <script>
     const { ref, effect } = VueReactivity
 
@@ -99,8 +116,43 @@
     }, 2000)
   </script> -->
   
-  <script src="5.js"></script>
+  <!--
+    给新增元素打补丁
+    满足四指针比对条件后，存在未处理的新增遗漏的元素，需进行挂载
+  -->
+  <!-- <script src="4.js"></script>
+  <script>
+    const { ref, effect } = VueReactivity
 
+    const children = ref([
+      { type: 'p', children: '1', key: 1 },
+      { type: 'p', children: '2', key: 2 },
+      { type: 'p', children: '3', key: 3 }
+    ])
+
+    effect(() => {
+      const vnode = ref({
+        type: 'div',
+        children: children.value
+      })
+      renderer.render(vnode.value, document.querySelector('#app'))
+    })
+
+    setTimeout(() => {
+      children.value = [
+        { type: 'p', children: '4', key: 4 },
+        { type: 'p', children: '1', key: 1 },
+        { type: 'p', children: '3', key: 3 },
+        { type: 'p', children: '2', key: 2 }
+      ]
+    }, 2000)
+  </script> -->
+  
+  <!--
+    移除不存在的元素
+    满足四指针比对条件后，存在多余的oldChildren元素，需进行移除
+  -->
+  <script src="5.js"></script>
   <script>
     const { ref, effect } = VueReactivity
 

@@ -205,8 +205,10 @@ function createRenderer (options) {
     let newStartVNode = newChildren[newStartIdx]
     let newEndVNode = newChildren[newEndIdx]
 
+    // remark：四指针循环交叉比对，终止条件 头指针大于等于尾指针
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
       if (oldStartVNode.key === newStartVNode.key) {
+        // remark：o头n头相等，递增指针即可
         // 第 ① 步: 旧头部节点 oldStartVNode 与新头部节点 newStartVNode 比较
 
         // 调用 patch 函数进行打补丁
@@ -216,6 +218,7 @@ function createRenderer (options) {
         oldStartVNode = oldChildren[++oldStartIdx]
         newStartVNode = newChildren[++newStartIdx]
       } else if (oldEndVNode.key === newEndVNode.key) {
+        // remark：o尾n尾相等，递减指针即可
         // 第 ② 步: 旧尾部节点 oldEndVNode 与新尾部节点 newEndVNode 比较
 
         // 节点在新的顺序中仍然处于尾部，不需要移动，但仍需打补丁
@@ -225,6 +228,7 @@ function createRenderer (options) {
         oldEndVNode = oldChildren[--oldEndIdx]
         newEndVNode = newChildren[--newEndIdx]
       } else if (oldStartVNode.key === newEndVNode.key) {
+        // remark：o头n尾相等，把o头移到真实节点指针后边
         // 第 ③ 步: 旧头部节点 oldStartVNode 与新尾部节点 newEndVNode 比较
 
         // 调用 patch 函数在 oldStartVNode 和 newEndVNode 之间打补丁
@@ -238,6 +242,7 @@ function createRenderer (options) {
         oldStartVNode = oldChildren[++oldStartIdx]
         newEndVNode = newChildren[--newEndIdx]
       } else if (oldEndVNode.key === newStartVNode.key) {
+        // remark：o尾n头相等，把o尾移到真实节点指针前面
         // 第 ④ 步: 旧尾部节点 oldEndVNode 与新头部节点 newStartVNode 比较
 
         // 仍然需要调用 patch 函数进行打补丁

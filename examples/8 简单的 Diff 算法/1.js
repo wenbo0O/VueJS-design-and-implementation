@@ -218,6 +218,7 @@ function createRenderer (options) {
                   const anchor = prevVNode.el.nextSibling
                   // 调用 insert 方法将 newVNode 对应的真实 DOM 插入到锚点元素前面，
                   // 也就是 prevVNode 对应真实 DOM 的后面
+                  // remark：利用newVnode.el可以引用真实dom的便利，把真实dom按照顺序插入到锚点元素后面
                   insert(newVnode.el, container, anchor)
                 }
               } else {
