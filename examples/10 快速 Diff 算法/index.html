@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>快速 Diff 算法</title>
 </head>
+
 <body>
   <div id="app"></div>
 
   <script src="../../@vue/reactivity.js"></script>
 
-  <script src="3.js"></script>
-
-  <!-- <script>
+  <!-- 
+    remark: 创建双指针（前置指针j，后置指针[oldEnd newEnd]）
+    *理想情况：
+      1. 新增节点：后置newEnd 没有越界j，说明有元素需要挂载
+      2. 删除节点：后置oldEnd 没有越界j，说明有元素需要删除
+  -->
+  <!-- <script src="1.js"></script>
+  <script>
     const { ref, effect } = VueReactivity
 
     const children = ref([
@@ -30,23 +37,33 @@
       renderer.render(vnode.value, document.querySelector('#app'))
     })
 
-    // setTimeout(() => {
-    //   children.value = [
-    //     { type: 'p', children: '1', key: 1 },
-    //     { type: 'p', children: '4', key: 4 },
-    //     { type: 'p', children: '2', key: 2 },
-    //     { type: 'p', children: '3', key: 3 }
-    //   ]
-    // }, 2000)
-
     setTimeout(() => {
+      // 新增
       children.value = [
         { type: 'p', children: '1', key: 1 },
-        { type: 'p', children: '3', key: 3 }
+        { type: 'p', children: '2', key: 2 },
+        { type: 'p', children: '3', key: 3 },
+        { type: 'p', children: '4', key: 4 }
       ]
+
+      setTimeout(() => {
+        // 删除
+        children.value = [
+          { type: 'p', children: '1', key: 1 },
+          { type: 'p', children: '4', key: 4 }
+        ]
+      }, 2000)
     }, 2000)
   </script> -->
 
+  <!--
+    remark:
+    *非理想情况：
+    旧的一组子节点：p-1、[p-2、p-3、p-4、p-6]、p-5。
+    新的一组子节点：p-1、[p-3、p-4、p-2、p-7]、p-5。
+    3. 移动节点：如果不在最长递增子序列的元素说明需要移动
+  -->
+  <script src="3.js"></script>
   <script>
     const { ref, effect } = VueReactivity
 
@@ -79,4 +96,5 @@
     }, 2000)
   </script>
 </body>
+
 </html>

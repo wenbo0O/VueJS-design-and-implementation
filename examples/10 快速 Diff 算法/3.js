@@ -4,6 +4,7 @@ const VNODE_TYPES = {
   Fragment: Symbol()
 }
 
+// 定序列的递增子序列的求法，取自 Vue.js 3
 function getSequence (arr) {
   const p = arr.slice(0)
   const len = arr.length
@@ -240,13 +241,13 @@ function createRenderer (options) {
     const newChildren = n2.children
     const oldChildren = n1.children
 
-    // 处理相同的前置节点
+    // *remark：处理相同的前置节点指针 j
     // 索引 j 指向新旧两组子节点的开头
     let j = 0
     let oldVNode = oldChildren[j]
     let newVNode = newChildren[j]
     // while 循环向后遍历，直到遇到不同 key 值的节点为止
-    while (oldVNode.key === newVNode.key) {
+    while (j < newChildren.length - 1 && oldVNode.key === newVNode.key) {
       // 调用 patch() 函数进行更新
       patch(oldVNode, newVNode, container)
       // 更新索引，让其递增
@@ -255,7 +256,7 @@ function createRenderer (options) {
       newVNode = newChildren[j]
     }
 
-    // 处理相同的后置节点
+    // *remark：处理相同的后置节点双指针 oldEnd newEnd
     // 索引 oldEnd 指向旧的一组子节点的最后一个节点
     let oldEnd = oldChildren.length - 1
     // 索引 newEnd 指向新的一组子节点的最后一个节点
@@ -265,7 +266,7 @@ function createRenderer (options) {
     newVNode = newChildren[newEnd]
 
     // while 循环从后向前遍历，直到遇到不同 key 值的节点
-    while (oldVNode.key === newVNode.key) {
+    while ((oldEnd > -1 && newEnd > -1) && oldVNode.key === newVNode.key) {
       // 调用 patch() 函数进行更新
       patch(oldVNode, newVNode, container)
       // 递减 oldEnd 和 newEnd
@@ -277,6 +278,7 @@ function createRenderer (options) {
 
     // 预处理完毕后，如果满足以下条件，则说明从 j ---> newEnd 之间的节点应作为新节点挂载
     if (j > oldEnd && j <= newEnd) {
+      // remark1: newEnd 没有越界，说明需要挂载
       // 锚点的索引
       const anchorIndex = newEnd + 1
       // 锚点元素
@@ -289,9 +291,13 @@ function createRenderer (options) {
         patch(null, newChildren[j++], container, anchor)
       }
     } else if (j > newEnd && j <= oldEnd) {
+      // remark2: oldEnd 没有越界，说明需要删除
       // j ---> oldEnd 之间的节点都应该被卸载
-      unmount(oldChildren[j++])
+      while (j <= oldEnd) {
+        unmount(oldChildren[j++])
+      }
     } else {
+      // remark3: newEnd & oldEnd 都没有越界j，说明新旧两组节点都没有处理完成
       // 处理非理想情况
       // 构造 source 数组
       // 新的一组子节点中剩余未处理的节点的数量
@@ -309,10 +315,13 @@ function createRenderer (options) {
       let pos = 0
 
       // 构建索引表
+      // remark: 把前置指针j和后置指针newEnd之间的元素构建成一张索引表
+      // key为新节点的key值，value为新节点的真实索引
       const keyIndex = {}
       for (let i = newStart; i <= newEnd; i++) {
         keyIndex[newChildren[i].key] = i
       }
+      console.log('🚀: ~ patchKeyedChildren ~ keyIndex:', keyIndex)
 
       // patched 代表更新过的节点数量
       let patched = 0
@@ -320,9 +329,10 @@ function createRenderer (options) {
       // 遍历旧的一组子节点中剩余未处理的节点
       for (let i = oldStart; i <= oldEnd; i++) {
         oldVNode = oldChildren[i]
-
+        // 如果更新过的节点数量小于等于需要更新的节点数量，则执行更新
         if (patched <= count) {
           // 通过索引表快速找到新的一组子节点中具有相同 key 值的节点位置
+          // remark: 通过key可以直接链路到新节点的真实索引
           const k = keyIndex[oldVNode.key]
   
           if (typeof k !== 'undefined') {
@@ -334,12 +344,16 @@ function createRenderer (options) {
             patched++
   
             // 填充 source 数组
+            // 填充新元素在旧元素的位置
             source[k - newStart] = i
   
             // 判断节点是否需要移动
+            // remark: 当前新节点的索引小于最大索引，说明需要移动，否则不需要移动
             if (k < pos) {
               moved = true
             } else {
+              // remark: 在遍历过程中遇到的索引值呈现递增趋势，说明不需要移动
+              // 新节点索引最大值
               pos = k
             }
           } else {
@@ -351,39 +365,52 @@ function createRenderer (options) {
           unmount(oldVNode)
         }
       }
-
+      
+      console.log('🚀: ~ patchKeyedChildren ~ source:', source)
       if (moved) {
+        // remark: 返回最长递增子序列的元素索引
         const seq = getSequence(source)
+        console.log('🚀: ~ patchKeyedChildren ~ seq:', seq)
 
-        // s 指向最长递增子序列的最后一个元素
+        // s 指向最长递增子序列的最后一个元素的索引
         let s = seq.length - 1
-        // i 指向新的一组子节点的最后一个元素
+        // i 指向新的一组子节点的最后一个元素的索引
         let i = count - 1
 
         // for 循环使 i 递减
+        /**
+         * remark: 遍历新节点
+         * 1. source 新元素在旧元素列表未查找到索引，默认就是-1。说明是新增元素
+         * 2. 当前元素是否是递增子序列中的元素，如果不是说明需要移动
+         * 3. 如果当前元素正好属于递增序列的元素，说明不需要dom操作，只需要移动序列索引的指针
+         */
         for (i; i >= 0; i--) {
           if (source[i] === -1) {
+            // *remark 1
             // 说明索引为 i 的节点是全新的节点，应该将其挂载
             // 该节点在新 children 中的真实位置索引
             pos = i + newStart
             newVNode = newChildren[pos]
 
             // 该节点的下一个节点的索引
+            // remark：这里遍历的新节点按循环顺序直接挂在就可以了
             const nextPos = pos + 1
             // 锚点
             const anchor = nextPos < newChildren.length
-              ? newChildren[nextPos].el
-              : null
+            ? newChildren[nextPos].el
+            : null
 
             // 挂载
             patch(null, newVNode, container, anchor)
           } else if (i !== seq[s]) {
+            // *remark 2
             // 如果节点的索引 i 不等于 seq[s] 的值，说明该节点需要移动
             // 该节点在新 children 中的真实位置索引
             pos = i + newStart
             newVNode = newChildren[pos]
 
             // 该节点的下一个节点的索引
+            // remark：这里遍历的新节点，直接移动到当前位置就可以了
             const nextPos = pos + 1
             // 锚点
             const anchor = nextPos < newChildren.length
@@ -393,6 +420,7 @@ function createRenderer (options) {
             // 移动
             insert(newVNode.el, container, anchor)
           } else {
+            // *remark 3
             // 当 i === seq[s] 时，说明该位置的节点不需要移动
             // 只需要让 s 指向下一个位置
             s--

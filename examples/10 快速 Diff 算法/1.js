@@ -195,13 +195,13 @@ function createRenderer (options) {
     const newChildren = n2.children
     const oldChildren = n1.children
 
-    // 处理相同的前置节点
+    // *remark：处理相同的前置节点指针 j
     // 索引 j 指向新旧两组子节点的开头
     let j = 0
     let oldVNode = oldChildren[j]
     let newVNode = newChildren[j]
     // while 循环向后遍历，直到遇到不同 key 值的节点为止
-    while (oldVNode.key === newVNode.key) {
+    while (j < newChildren.length - 1 && oldVNode.key === newVNode.key) {
       // 调用 patch() 函数进行更新
       patch(oldVNode, newVNode, container)
       // 更新索引，让其递增
@@ -210,7 +210,7 @@ function createRenderer (options) {
       newVNode = newChildren[j]
     }
 
-    // 处理相同的后置节点
+    // *remark：处理相同的后置节点双指针 oldEnd newEnd
     // 索引 oldEnd 指向旧的一组子节点的最后一个节点
     let oldEnd = oldChildren.length - 1
     // 索引 newEnd 指向新的一组子节点的最后一个节点
@@ -220,7 +220,7 @@ function createRenderer (options) {
     newVNode = newChildren[newEnd]
 
     // while 循环从后向前遍历，直到遇到不同 key 值的节点
-    while (oldVNode.key === newVNode.key) {
+    while ((oldEnd > -1 && newEnd > -1) && oldVNode.key === newVNode.key) {
       // 调用 patch() 函数进行更新
       patch(oldVNode, newVNode, container)
       // 递减 oldEnd 和 newEnd
@@ -232,6 +232,7 @@ function createRenderer (options) {
 
     // 预处理完毕后，如果满足以下条件，则说明从 j ---> newEnd 之间的节点应作为新节点挂载
     if (j > oldEnd && j <= newEnd) {
+      // remark1: newEnd 没有越界，说明需要挂载
       // 锚点的索引
       const anchorIndex = newEnd + 1
       // 锚点元素
@@ -244,8 +245,11 @@ function createRenderer (options) {
         patch(null, newChildren[j++], container, anchor)
       }
     } else if (j > newEnd && j <= oldEnd) {
+      // remark2: oldEnd 没有越界，说明需要删除
       // j ---> oldEnd 之间的节点都应该被卸载
-      unmount(oldChildren[j++])
+      while (j <= oldEnd) {
+        unmount(oldChildren[j++])
+      }
     }
   }
 
