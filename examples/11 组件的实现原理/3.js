@@ -180,8 +180,11 @@ function createRenderer (options) {
 
     // 代码运行到这里，证明 n1 和 n2 所描述的内容相同
     const { type } = n2
-    // 如果 n2.type 是字符串类型，则它描述的是普通标签元素
-    if (typeof type === 'string') {
+    // *remark：模拟挂载插槽的情况 n2是父组件传入的插槽render函数
+    if (type === undefined && Array.isArray(n2)) {
+      n2.forEach(child => patch(null, child, container))
+    } else if (typeof type === 'string') {
+      // 如果 n2.type 是字符串类型，则它描述的是普通标签元素
       if (!n1) {
         // 挂载时将锚点元素作为第三个参数传递给 mountElement 函数
         mountElement(n2, container, anchor)
@@ -267,6 +270,7 @@ function createRenderer (options) {
   }
 
   function patchElement (n1, n2) {
+    // remark：使新节点n2可以直接引用真实dom
     const el = n2.el = n1.el
     const oldProps = n1.props
     const newProps = n2.props
@@ -309,9 +313,12 @@ function createRenderer (options) {
     // 调用 data() 函数得到原始数组，并调用 reactive() 函数将其包装成响应式数组
     const state = data ? reactive(data()) : null
     // 调用 resolveProps() 函数解析出最终的 props 数据与 attrs 数据
+    // remark: propsOption 为组件内部对外的 props 定义
+    // remark: vnode.props 为父组件传入的 propsData
     const [props, attrs] = resolveProps(propsOption, vnode.props)
 
     // 直接使用编译好的 vnode.children 对象作为 slots 对象即可
+    // remark: 父组件传入的真实子 render 函数
     const slots = vnode.children || {}
 
     // 定义组件实例，一个组件实例本质上就是一个对象，它包含与组件有关的状态信息
@@ -374,6 +381,7 @@ function createRenderer (options) {
     vnode.component = instance
 
     // 创建渲染上下文对象，本质上是组件实例的代理
+    // remark：data > props > setupResult
     const renderContext = new Proxy(instance, {
       get (t, k, r) {
         const { state, props, slots } = t
@@ -399,7 +407,9 @@ function createRenderer (options) {
         if (state && k in state) {
           state[k] = v
         } else if (k in props) {
-          props[k] = v
+          // props[k] = v
+          // 不允许修改父组件数据
+          console.warn(`Attempting to mutate prop "${k}". Props are readonly.`)
         } else if (k in setupState) {
           // 渲染上下文需要增加对 setupState 的支持
           setupState[k] = v
@@ -422,15 +432,17 @@ function createRenderer (options) {
       if (!instance.isMounted) {
         // 在这里调用 beforeMount() 钩子
         beforeMount && beforeMount.call(renderContext)
-
+        
         // 初次挂载，调用 patch() 函数，第一个参数传递 null
         patch(null, subTree, container, anchor)
         // 重点：将组件实例上的 isMounted 标记为 true，这样当更新发生时就不会再次进行挂载操作
         // 而是执行更新操作
         instance.isMounted = true
-
+        
         // 在这里调用 mounted() 钩子
         mounted && mounted.call(renderContext)
+        // remark：instance为当前组件的内部对象，vnode为父组件挂载时的对象。
+        // remark：(vnode.component === instance) === true
         // 遍历 instance.mounted 数组，并逐个执行即可
         instance.mounted && instance.mounted.forEach(hook => hook.call(renderContext))
       } else {
@@ -440,7 +452,7 @@ function createRenderer (options) {
         // 当 isMounted 为 true 时，说明组件已经被挂载了，只需要完成自更新即可，
         // 所以在调用 patch() 函数时，第一个参数为组件上一次渲染的子树，
         // 意思是：使用新的子树与上一次渲染的子树进行打补丁操作
-        patch(vnode.subTree, subTree, container, anchor)
+        patch(instance.subTree, subTree, container, anchor)
 
         // 在这里调用 updated() 钩子
         updated && updated.call(renderContext)

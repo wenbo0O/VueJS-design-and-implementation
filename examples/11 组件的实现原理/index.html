@@ -1,87 +1,117 @@
+<!--
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2024-11-20 17:18:24
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2024-12-13 11:54:55
+ * @FilePath: \VueJS-design-and-implementation\examples\11 组件的实现原理\index.html
+ * @Description: 
+-->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>组件的实现原理</title>
 </head>
+
 <body>
   <div id="app"></div>
 
-  <script src="../../@vue/reactivity.js"></script>
+  <script src="../4 非原始值的响应式方案/8.js"></script>
+  <script src="../5 原始值的响应式方案/1.js"></script>
+  <!-- <script src="1.js"></script> -->
+  <!-- 普通节点的挂载方式 -->
+  <!-- <script>
+    const vnode = {
+      type: 'div',
+      children: 'Hello world'
+    }
 
-  <script>
-    const { shallowReactive, shallowReadonly, reactive, effect, ref } = VueReactivity
-  </script>
+    renderer.render(vnode, document.querySelector('#app'))
+  </script> -->
 
-  <script src="3.js"></script>
-
-  <script>
-    // const MyComponent = {
-    //   type: 'div',
-    //   children: 'Hello world'
-    // }
-
-    // renderer.render(MyComponent, document.querySelector('#app'))
-
-    
-    // const MyComponent = {
-    //   data () {
-    //     return {
-    //       count: 1
-    //     }
-    //   },
-
-    //   render () {
-    //     return {
-    //       type: 'div',
-    //       children: `count is: ${this.count}`
-    //     }
-    //   }
-    // }
-
-    // renderer.render({ type: MyComponent }, document.querySelector('#app'))
-
-
-    // const MyComponent = {
-    //   data () {
-    //     return {
-    //       count: 1
-    //     }
-    //   },
-
-    //   mounted () {
-    //     console.log('mounted', this.count)
-    //   },
-
-    //   render () {
-    //     return {
-    //       type: 'div',
-    //       children: `count is: ${this.count}`
-    //     }
-    //   }
-    // }
-
-    // renderer.render({ type: MyComponent }, document.querySelector('#app'))
-    
+  <!--
+    type 为 object 的 会别当做组件进入 mountComponent 或 patchComponent
+    data：与 reactive 关联并且在 effect 里收集依赖
+    render：在 effect 里用 patch 挂载或更新
+    在 mountComponent 函数执行type为'object'对象里的mounted
+  -->
+  <!-- <script>
     const MyComponent = {
       data () {
         return {
           count: 1
         }
       },
+      mounted () {
+        this.count = 2
+        setTimeout(() => {
+          this.count++
+        }, 1000)
+      },
+      render () {
+        return {
+          type: 'div',
+          children: `count is: ${this.count}` // 在渲染函数内使用组件状态
+        }
+      }
+    }
 
-      setup () {
+    renderer.render({ type: MyComponent }, document.querySelector('#app'))
+  </script> -->
 
-        onMounted(() => {
-          console.log('mounted 1')
-        })
+  <!-- patchComponent、创建代理上下文renderContext对象 -->
+  <!-- <script src="2.js"></script>
+  <script>
+    const MyComponent = {
+      props: {
+        title: String
+      },
+      data() {
+        return {
+          count: 1
+        }
+      },
+      beforeUpdate(renderContext) {
+        console.log('🚀: ~ beforeUpdate ~ renderContext:', renderContext)
+      },
+      updated(renderContext) {
+        console.log('🚀: ~ updated ~ renderContext:', renderContext)
+      },
+      mounted() {
+        console.log('🚀: ~ mounted ~ renderContext:', this)
+      },
+      render() {
+        return {
+          type: 'div',
+          children: `count is: ${this.title}`
+        }
+      }
+    }
 
-        onMounted(() => {
-          console.log('mounted 2')
-        })
+    // 父组件要渲染的内容
+    const vnode = {
+      type: MyComponent,
+      props: {
+        title: 'A big Title',
+        other: 'other'
+      }
+    }
+    renderer.render(vnode, document.querySelector('#app'))
+  </script> -->
 
+  <!-- setup 可返回一个函数，作为组件的render -->
+  <script src="3.js"></script>
+  <!-- <script>
+    const MyComponent = {
+      data() {
+        return {
+          count: 1
+        }
+      },
+      setup() {
         return function () {
           return {
             type: 'div',
@@ -92,8 +122,124 @@
     }
 
     renderer.render({ type: MyComponent }, document.querySelector('#app'))
+  </script> -->
 
-    // 大部分例子都跑不通啊。。。。。。。。。。。。。。。f**k
+  <!-- 
+    setup 可返回一个对象，包含组件的数据
+    emit的实现
+  -->
+  <!-- <script>
+    const MyComponent = {
+      props: {
+        title: String
+      },
+      setup(props, setupContext) {
+        console.log('🚀: ~ setup ~ props, setupContext:', props, setupContext)
+        const count = ref(props.title)
+
+        // 发射 change 事件，并传递给事件处理函数两个参数
+        setupContext.emit('change', 1, 2)
+
+        // 返回一个对象，对象中的数据会暴露到渲染函数中
+        return {
+          count
+        }
+      },
+      render() {
+        return {
+          type: 'div',
+          children: `count is: ${this.count.value}`
+        }
+      }
+    }
+
+    function handleChange(e, e2) {
+      console.log('🚀: ~ handleChange ~ e:', e, e2)
+    }
+    renderer.render({
+      type: MyComponent,
+      props: {
+        title: 'A big Title',
+        other: 'other',
+        onChange: handleChange
+      }
+    }, document.querySelector('#app'))
+  </script> -->
+
+
+  <!-- 插槽的实现 -->
+  <!-- <script>
+    const MyComponent = {
+      data() {
+        return {
+          count: 100
+        }
+      },
+      created() {
+        console.log('🚀: ~ created ~ this:', this.$slots)
+      },
+      render(e) {
+        // return {
+        //   type: 'div',
+        //   children: `count is: ${this.count}`
+        // }
+        return [
+          {
+            type: 'header',
+            children: [this.$slots.header()]
+          },
+          {
+            type: 'body',
+            children: [this.$slots.body()]
+          },
+          {
+            type: 'footer',
+            children: [this.$slots.footer()]
+          }
+        ]
+      }
+    }
+
+    renderer.render({
+      type: MyComponent,
+      // 组件的 children 会被编译成一个对象
+      children: {
+        header() {
+          return { type: 'h1', children: '我是标题' }
+        },
+        body() {
+          return { type: 'section', children: '我是内容' }
+        },
+        footer() {
+          return { type: 'p', children: '我是注脚' }
+        }
+      }
+    }, document.querySelector('#app'))
+  </script> -->
+
+  <!-- 注册生命周期 -->
+  <script>
+    const MyComponent = {
+      setup() {
+        onMounted(() => {
+          console.log('mounted 1')
+        })
+
+        onMounted(() => {
+          console.log('mounted 2')
+        })
+
+        return function () {
+          return {
+            type: VNODE_TYPES.Text,
+            children: 'Text'
+          }
+        }
+      }
+    }
+
+    renderer.render({ type: MyComponent }, document.querySelector('#app'))
   </script>
 </body>
+
 </html>

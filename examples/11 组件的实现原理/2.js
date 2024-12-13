@@ -248,6 +248,7 @@ function createRenderer (options) {
   }
 
   function patchElement (n1, n2) {
+    // remark：使新节点n2可以直接引用真实dom
     const el = n2.el = n1.el
     const oldProps = n1.props
     const newProps = n2.props
@@ -288,7 +289,10 @@ function createRenderer (options) {
     // 调用 data() 函数得到原始数组，并调用 reactive() 函数将其包装成响应式数组
     const state = reactive(data())
     // 调用 resolveProps() 函数解析出最终的 props 数据与 attrs 数据
+    // remark: propsOption 为组件内部对外的 props 定义
+    // remark: vnode.props 为父组件传入的 propsData
     const [props, attrs] = resolveProps(propsOption, vnode.props)
+    console.log('🚀: ~ mountComponent ~ props:', props, attrs)
 
     // 定义组件实例，一个组件实例本质上就是一个对象，它包含与组件有关的状态信息
     const instance = {
@@ -306,6 +310,7 @@ function createRenderer (options) {
     vnode.component = instance
 
     // 创建渲染上下文对象，本质上是组件实例的代理
+    // remark：data > props
     const renderContext = new Proxy(instance, {
       get (t, k, r) {
         const { state, props } = t
@@ -324,7 +329,9 @@ function createRenderer (options) {
         if (state && k in state) {
           state[k] = v
         } else if (k in props) {
-          props[k] = v
+          // props[k] = v
+          // 不允许修改父组件数据
+          console.warn(`Attempting to mutate prop "${k}". Props are readonly.`)
         } else {
           console.error('不存在')
         }
@@ -376,6 +383,7 @@ function createRenderer (options) {
 
   function patchComponent (n1, n2, container) {
     // 获取组件实例，即 n1.component，同时让新的组件虚拟节点也指向组件实例
+    // remark： 仅mountComponent函数会挂载component，索引新的n2直接继承旧的
     const instance = (n2.component = n1.component)
     // 获取当前的 props 数据
     const { props } = instance
