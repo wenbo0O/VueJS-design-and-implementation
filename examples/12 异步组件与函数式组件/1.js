@@ -1,3 +1,11 @@
+/*
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2024-11-20 17:18:24
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2024-12-16 17:19:24
+ * @FilePath: \VueJS-design-and-implementation\examples\12 异步组件与函数式组件\1.js
+ * @Description: 
+ */
 const VNODE_TYPES = {
   Text: Symbol(),
   Comment: Symbol(),
@@ -97,7 +105,7 @@ function getSequence (arr) {
   return result
 }
 
-function resolveProps (options, propsData) {
+function resolveProps (options={}, propsData={}) {
   const props = {}
   const attrs = {}
 
@@ -184,8 +192,11 @@ function createRenderer (options) {
 
     // 代码运行到这里，证明 n1 和 n2 所描述的内容相同
     const { type } = n2
-    // 如果 n2.type 是字符串类型，则它描述的是普通标签元素
-    if (typeof type === 'string') {
+    // *remark：模拟挂载插槽的情况 n2是父组件传入的插槽render函数
+    if (type === undefined && Array.isArray(n2)) {
+      n2.forEach(child => patch(null, child, container))
+    } else if (typeof type === 'string') {
+      // 如果 n2.type 是字符串类型，则它描述的是普通标签元素
       if (!n1) {
         // 挂载时将锚点元素作为第三个参数传递给 mountElement 函数
         mountElement(n2, container, anchor)
@@ -416,7 +427,9 @@ function createRenderer (options) {
         if (state && k in state) {
           state[k] = v
         } else if (k in props) {
-          props[k] = v
+          // props[k] = v
+          // 不允许修改父组件数据
+          console.warn(`Attempting to mutate prop "${k}". Props are readonly.`)
         } else if (k in setupState) {
           // 渲染上下文需要增加对 setupState 的支持
           setupState[k] = v
@@ -434,6 +447,7 @@ function createRenderer (options) {
       // 调用 render() 函数时，将其 this 设置为 state，
       // 从而 render() 函数内部可以通过 this 访问组件自身状态数据
       const subTree = render.call(renderContext, state)
+      console.log('🚀: ~ effect ~ subTree:', subTree)
 
       // 检测组件是否已经被挂载
       if (!instance.isMounted) {
@@ -457,7 +471,7 @@ function createRenderer (options) {
         // 当 isMounted 为 true 时，说明组件已经被挂载了，只需要完成自更新即可，
         // 所以在调用 patch() 函数时，第一个参数为组件上一次渲染的子树，
         // 意思是：使用新的子树与上一次渲染的子树进行打补丁操作
-        patch(vnode.subTree, subTree, container, anchor)
+        patch(instance.subTree, subTree, container, anchor)
 
         // 在这里调用 updated() 钩子
         updated && updated.call(renderContext)
@@ -693,6 +707,13 @@ function createRenderer (options) {
     }
   }
 
+  return {
+    render
+  }
+}
+
+
+
   // 用于定义一个异步组件
   function defineAsyncComponent (options) {
     // options 可以是加载器，也可以是配置项
@@ -743,7 +764,8 @@ function createRenderer (options) {
         // 异步组件是否加载成功
         const loaded = ref(false)
         // 定义 error，当错误发生时，用户存储错误对象
-        const error = shallowRef(null)
+        // const error = shallowRef(null)
+        const error = ref(null)
         // 定义 loading 表示是否正在加载
         const loading = ref(false)
 
@@ -760,8 +782,12 @@ function createRenderer (options) {
 
         // 调用 load 函数加载组件
         load().then(c => {
-          InnerComp = c
-          loader.value = true
+          try {
+            InnerComp = c.default
+          } catch (err) {
+            error.value = err
+          }
+          loaded.value = true
         })
         // 添加 catch 语句来捕获加载过程中的错误
         .catch(err => error.value = err)
@@ -780,8 +806,9 @@ function createRenderer (options) {
             error.value = new Error(`Async component timed out after ${options.timeout}ms.`)
           }, options.timeout)
         }
+        // remark: 组件卸载方法未实现
         // 包装组件被卸载组清除定时器
-        onUnmounted(() => clearTimeout(timer))
+        // onUnmounted(() => clearTimeout(timer))
 
         // 占位内容
         const placeholder = { type: VNODE_TYPES.Text, children: '' }
@@ -801,18 +828,13 @@ function createRenderer (options) {
           } else if (loading.value && options.loadingComponent) {
             // 如果异步组件正在加载，且用户配置了 loadingComponent 时才展示 Loading 组件
             return { type: options.loadingComponent }
-          }
+          } 
 
           return placeholder
         }
       }
     }
   }
-
-  return {
-    render
-  }
-}
 
 function normalizeClass(value) {
   let res = ''

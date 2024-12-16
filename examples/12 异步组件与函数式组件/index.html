@@ -1,0 +1,94 @@
+<!--
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2024-11-20 17:18:24
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2024-12-16 17:14:27
+ * @FilePath: \VueJS-design-and-implementation\examples\12 异步组件与函数式组件\index.html
+ * @Description: 
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>12 异步组件与函数式组件</title>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script src="../4 非原始值的响应式方案/8.js"></script>
+  <script src="../5 原始值的响应式方案/1.js"></script>
+  <script src="1.js"></script>
+  <!-- 异步组件 -->
+  <!-- <script>
+    const MyLoadingComp = {
+      setup() {
+        return function () {
+          return {
+            type: 'div',
+            children: '加载中...'
+          }
+        }
+      }
+    }
+
+    const MyErrorComp = {
+      props: {
+        error: String
+      },
+      setup() {
+        return function () {
+          return {
+            type: 'div',
+            children: '错误' + this.error
+          }
+        }
+      }
+    }
+
+    const AsyncComp = defineAsyncComponent({
+      // loader: () => import('./CompA.js'),
+      loader: () => import('./CompA.xjs'), // remark: 模拟路径错误加载失败
+      // delay: 200, // 延迟loading
+      loadingComponent: MyLoadingComp,
+      timeout: 2000, // 超时时长，其单位为 ms
+      onError(retry, fail, retries) {
+        console.log('🚀: ~ onError ~ retries:', retries)
+        if (retries < 2) {
+          retry()
+        } else {
+          fail()
+        }
+      },
+      errorComponent: MyErrorComp // 指定出错时要渲染的组件
+    })
+
+    renderer.render({ type: AsyncComp }, document.querySelector('#app'))
+  </script> -->
+
+
+  <!-- 函数式组件 -->
+  <script>
+    function MyFuncComp() {
+      return { type: 'h1', children: this.title }
+    }
+    // 定义 props
+    MyFuncComp.props = {
+      title: String
+    }
+
+    renderer.render(
+      {
+        type: MyFuncComp,
+        props: { title: '函数式声明' }
+      },
+      document.querySelector('#app')
+    )
+  </script>
+
+</body>
+
+</html>
