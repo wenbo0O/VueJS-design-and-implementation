@@ -8,11 +8,11 @@ const VNODE_TYPES = {
 // 全局变量，存储当前存在被初始化的实例
 let currentInstance = null
 
-function setCurrentInstance (instance) {
+function setCurrentInstance(instance) {
   currentInstance = instance
 }
 
-function onMounted (fn) {
+function onMounted(fn) {
   if (currentInstance) {
     // 将生命周期函数添加到 instance.mounted 数组中
     currentInstance.mounted.push(fn)
@@ -29,7 +29,7 @@ let isFlushing = false
 const p = Promise.resolve()
 
 // 调度器的主要函数，用来将一个任务添加到缓冲队列中，并开始刷新队列
-function queueJob (job) {
+function queueJob(job) {
   // 将任务加到队列中
   queue.add(job)
 
@@ -52,7 +52,7 @@ function queueJob (job) {
   }
 }
 
-function getSequence (arr) {
+function getSequence(arr) {
   const p = arr.slice(0)
   const len = arr.length
 
@@ -97,7 +97,7 @@ function getSequence (arr) {
   return result
 }
 
-function resolveProps (options, propsData) {
+function resolveProps(options = {}, propsData = {}) {
   const props = {}
   const attrs = {}
 
@@ -113,7 +113,7 @@ function resolveProps (options, propsData) {
   return [props, attrs]
 }
 
-function hasPropsChanged (prevProps, nextProps) {
+function hasPropsChanged(prevProps, nextProps) {
   const nextKeys = Object.keys(nextProps)
   // 如果新旧 props 的数量变了，则说明有变化
   if (nextKeys.length !== Object.keys(prevProps).length) {
@@ -129,7 +129,7 @@ function hasPropsChanged (prevProps, nextProps) {
   return false
 }
 
-function createRenderer (options) {
+function createRenderer(options) {
   // 通过 options 取得操作 DOM 的 API
   const {
     createElement,
@@ -142,7 +142,7 @@ function createRenderer (options) {
     setComment
   } = options
 
-  function render (vnode, container) {
+  function render(vnode, container) {
     if (vnode) {
       // 新 vnode 存在，将其与旧 vnode 一起传递给 patch 函数，进行更新
       patch(container._vnode, vnode, container)
@@ -156,7 +156,7 @@ function createRenderer (options) {
     container._vnode = vnode
   }
 
-  function unmount (vnode) {
+  function unmount(vnode) {
     if (vnode.type === VNODE_TYPES.Fragment) {
       vnode.children.forEach(c => unmount(c))
       return
@@ -181,7 +181,7 @@ function createRenderer (options) {
     }
   }
 
-  function patch (n1, n2, container, anchor) {
+  function patch(n1, n2, container, anchor) {
     // n1 存在，则对比 n1 和 n2 的类型
     if (n1 && n1.type !== n2.type) {
       // 如果两者类型不一致，则直接将旧 vnode 卸载
@@ -191,8 +191,11 @@ function createRenderer (options) {
 
     // 代码运行到这里，证明 n1 和 n2 所描述的内容相同
     const { type } = n2
-    // 如果 n2.type 是字符串类型，则它描述的是普通标签元素
-    if (typeof type === 'string') {
+    // *remark：模拟挂载插槽的情况 n2是父组件传入的插槽render函数
+    if (type === undefined && Array.isArray(n2)) {
+      n2.forEach(child => patch(null, child, container))
+    } else if (typeof type === 'string') {
+      // 如果 n2.type 是字符串类型，则它描述的是普通标签元素
       if (!n1) {
         // 挂载时将锚点元素作为第三个参数传递给 mountElement 函数
         mountElement(n2, container, anchor)
@@ -207,7 +210,7 @@ function createRenderer (options) {
         patch,
         patchChildren,
         unmount,
-        move (vnode, container, anchor) {
+        move(vnode, container, anchor) {
           insert(
             vnode.component ? vnode.component.subTree.el : vnode.el,
             container,
@@ -264,14 +267,14 @@ function createRenderer (options) {
     }
   }
 
-  function shouldSetAsProps (el, key, value) {
+  function shouldSetAsProps(el, key, value) {
     // 特殊处理
     if (key === 'form' && el.tagName === 'INPUT') return false
     // 兜底
     return key in el
   }
 
-  function mountElement (vnode, container, anchor) {
+  function mountElement(vnode, container, anchor) {
     // 创建 DOM 元素，并让 vnode.el 引用真实 DOM 元素
     const el = vnode.el = createElement(vnode.type)
 
@@ -298,7 +301,7 @@ function createRenderer (options) {
     insert(el, container, anchor)
   }
 
-  function patchElement (n1, n2) {
+  function patchElement(n1, n2) {
     const el = n2.el = n1.el
     const oldProps = n1.props
     const newProps = n2.props
@@ -319,7 +322,7 @@ function createRenderer (options) {
     patchChildren(n1, n2, el)
   }
 
-  function mountComponent (vnode, container, anchor) {
+  function mountComponent(vnode, container, anchor) {
     // 用于检测是否是函数式组件
     const isFunctional = typeof vnode.type === 'function'
 
@@ -383,7 +386,7 @@ function createRenderer (options) {
       // 在 KeepAlive 组件实例上添加 keepAliveCtx 对象
       instance.keepAliveCtx = {
         // move 函数用于移动一段 vnode
-        move (vnode, container, anchor) {
+        move(vnode, container, anchor) {
           // 本质上是将组件渲染的内容移动到指定容器中，即隐藏容器中
           insert(vnode.component.subTree.el, container, anchor)
         },
@@ -392,7 +395,7 @@ function createRenderer (options) {
     }
 
     // 定义 emit() 函数
-    function emit (event, ...payload) {
+    function emit(event, ...payload) {
       // 根据约定对事件名称进行处理，例如 change --> onChange
       // event[0] => 'change'[0] => 'c'
       const eventName = `on${event[0].toUpperCase() + event.slice(1)}`
@@ -436,7 +439,7 @@ function createRenderer (options) {
 
     // 创建渲染上下文对象，本质上是组件实例的代理
     const renderContext = new Proxy(instance, {
-      get (t, k, r) {
+      get(t, k, r) {
         const { state, props, slots } = t
 
         // 当 k 值为 $slots 时，直接返回 slots
@@ -455,12 +458,14 @@ function createRenderer (options) {
         }
       },
 
-      set (t, k, v, r) {
+      set(t, k, v, r) {
         const { state, props } = t
         if (state && k in state) {
           state[k] = v
         } else if (k in props) {
-          props[k] = v
+          // props[k] = v
+          // 不允许修改父组件数据
+          console.warn(`Attempting to mutate prop "${k}". Props are readonly.`)
         } else if (k in setupState) {
           // 渲染上下文需要增加对 setupState 的支持
           setupState[k] = v
@@ -501,7 +506,7 @@ function createRenderer (options) {
         // 当 isMounted 为 true 时，说明组件已经被挂载了，只需要完成自更新即可，
         // 所以在调用 patch() 函数时，第一个参数为组件上一次渲染的子树，
         // 意思是：使用新的子树与上一次渲染的子树进行打补丁操作
-        patch(vnode.subTree, subTree, container, anchor)
+        patch(instance.subTree, subTree, container, anchor)
 
         // 在这里调用 updated() 钩子
         updated && updated.call(renderContext)
@@ -515,7 +520,7 @@ function createRenderer (options) {
     })
   }
 
-  function patchComponent (n1, n2, container) {
+  function patchComponent(n1, n2, container) {
     // 获取组件实例，即 n1.component，同时让新的组件虚拟节点也指向组件实例
     const instance = (n2.component = n1.component)
     // 获取当前的 props 数据
@@ -535,7 +540,7 @@ function createRenderer (options) {
     }
   }
 
-  function patchChildren (n1, n2, container) {
+  function patchChildren(n1, n2, container) {
     // 判断新子节点的类型是否是文本节点
     if (typeof n2.children === 'string') {
       // 旧子节点的类型有三种可能
@@ -571,7 +576,7 @@ function createRenderer (options) {
     }
   }
 
-  function patchKeyedChildren (n1, n2, container) {
+  function patchKeyedChildren(n1, n2, container) {
     const newChildren = n2.children
     const oldChildren = n1.children
 
@@ -659,18 +664,18 @@ function createRenderer (options) {
         if (patched <= count) {
           // 通过索引表快速找到新的一组子节点中具有相同 key 值的节点位置
           const k = keyIndex[oldVNode.key]
-  
+
           if (typeof k !== 'undefined') {
             newVNode = newChildren[k]
             // 调用 patch() 函数完成更新
             patch(oldVNode, newVNode, container)
-  
+
             // 每更新一个节点，都将 patched 的值 + 1
             patched++
-  
+
             // 填充 source 数组
             source[k - newStart] = i
-  
+
             // 判断节点是否需要移动
             if (k < pos) {
               moved = true
@@ -737,76 +742,88 @@ function createRenderer (options) {
     }
   }
 
-  // 用于定义一个异步组件
-  function defineAsyncComponent (options) {
-    // options 可以是加载器，也可以是配置项
-    if (typeof options === 'function') {
-      // 如果 options 是加载器，则将其格式化为配置项形式
-      options = {
-        loader: options
-      }
+  return {
+    render
+  }
+}
+
+
+
+// 用于定义一个异步组件
+function defineAsyncComponent(options) {
+  // options 可以是加载器，也可以是配置项
+  if (typeof options === 'function') {
+    // 如果 options 是加载器，则将其格式化为配置项形式
+    options = {
+      loader: options
     }
+  }
 
-    const { loader } = options
+  const { loader } = options
 
-    // 一个用于存储异步加载的组件
-    let InnerComp = null
+  // 一个用于存储异步加载的组件
+  let InnerComp = null
 
-    // 记录重试次数
-    let retries = 0
+  // 记录重试次数
+  let retries = 0
 
-    // 封装 load 函数用来加载异步组件
-    function load () {
-      return loader()
-        // 捕获加载器的错误
-        .catch(err => {
-          // 如果用户指定了 onError 回调，则将控制权交给用户
-          if (options.onError) {
-            return new Promise((resolve, reject) => {
-              // 重试
-              const retry = () => {
-                resolve(load())
-                retries++
-              }
-              // 失败
-              const fail = () => reject(err)
+  // 封装 load 函数用来加载异步组件
+  function load() {
+    return loader()
+      // 捕获加载器的错误
+      .catch(err => {
+        // 如果用户指定了 onError 回调，则将控制权交给用户
+        if (options.onError) {
+          return new Promise((resolve, reject) => {
+            // 重试
+            const retry = () => {
+              resolve(load())
+              retries++
+            }
+            // 失败
+            const fail = () => reject(err)
 
-              // 作为 onError 回调函数的参数，让用户来决定下一步怎么做
-              options.onError(retry, fail, retries)
-            })
-          } else {
-            throw err
-          }
-        })
-    }
-
-    // 返回一个包装组件
-    return {
-      name: 'AsyncComponentWrapper',
-      setup () {
-        // 异步组件是否加载成功
-        const loaded = ref(false)
-        // 定义 error，当错误发生时，用户存储错误对象
-        const error = shallowRef(null)
-        // 定义 loading 表示是否正在加载
-        const loading = ref(false)
-
-        let loadingTimer = null
-
-        if (options.delay) {
-          // 如果有设置 delay，则开启定时器
-          loadingTimer = setTimeout(() => {
-            loading.value = true
-          }, options.delay)
+            // 作为 onError 回调函数的参数，让用户来决定下一步怎么做
+            options.onError(retry, fail, retries)
+          })
         } else {
-          loading.value = true
+          throw err
         }
+      })
+  }
 
-        // 调用 load 函数加载组件
-        load().then(c => {
-          InnerComp = c
-          loader.value = true
-        })
+  // 返回一个包装组件
+  return {
+    name: 'AsyncComponentWrapper',
+    setup() {
+      // 异步组件是否加载成功
+      const loaded = ref(false)
+      // 定义 error，当错误发生时，用户存储错误对象
+      // const error = shallowRef(null)
+      const error = ref(null)
+      // 定义 loading 表示是否正在加载
+      const loading = ref(false)
+
+      let loadingTimer = null
+
+      if (options.delay) {
+        // 如果有设置 delay，则开启定时器
+        loadingTimer = setTimeout(() => {
+          loading.value = true
+        }, options.delay)
+      } else {
+        loading.value = true
+      }
+
+      // 调用 load 函数加载组件
+      load().then(c => {
+        try {
+          InnerComp = c.default
+        } catch (err) {
+          error.value = err
+        }
+        loaded.value = true
+      })
         // 添加 catch 语句来捕获加载过程中的错误
         .catch(err => error.value = err)
         .finally(() => {
@@ -815,46 +832,42 @@ function createRenderer (options) {
           clearTimeout(loadingTimer)
         })
 
-        let timer = null
+      let timer = null
 
-        if (options.timeout) {
-          // 如果指定了超时时长，则开启一个定时器计时
-          timer = setTimeout(() => {
-            // 超时后创建一个错误对象，并复制给 error.value
-            error.value = new Error(`Async component timed out after ${options.timeout}ms.`)
-          }, options.timeout)
-        }
-        // 包装组件被卸载组清除定时器
-        onUnmounted(() => clearTimeout(timer))
+      if (options.timeout) {
+        // 如果指定了超时时长，则开启一个定时器计时
+        timer = setTimeout(() => {
+          // 超时后创建一个错误对象，并复制给 error.value
+          error.value = new Error(`Async component timed out after ${options.timeout}ms.`)
+        }, options.timeout)
+      }
+      // remark: 组件卸载方法未实现
+      // 包装组件被卸载组清除定时器
+      // onUnmounted(() => clearTimeout(timer))
 
-        // 占位内容
-        const placeholder = { type: VNODE_TYPES.Text, children: '' }
+      // 占位内容
+      const placeholder = { type: VNODE_TYPES.Text, children: '' }
 
-        return () => {
-          if (loaded.value) {
-            // 如果组件异步加载成功，则渲染被加载的组件
-            return { type: InnerComp }
-          } else if (error.value && options.errorComponent) {
-            // 只有当错误存在且用户配置了 errorComponent 时才展示 Error 组件，同时将 error 作为 props 传递
-            return {
-              type: options.errorComponent,
-              props: {
-                error: error.value
-              }
+      return () => {
+        if (loaded.value) {
+          // 如果组件异步加载成功，则渲染被加载的组件
+          return { type: InnerComp }
+        } else if (error.value && options.errorComponent) {
+          // 只有当错误存在且用户配置了 errorComponent 时才展示 Error 组件，同时将 error 作为 props 传递
+          return {
+            type: options.errorComponent,
+            props: {
+              error: error.value
             }
-          } else if (loading.value && options.loadingComponent) {
-            // 如果异步组件正在加载，且用户配置了 loadingComponent 时才展示 Loading 组件
-            return { type: options.loadingComponent }
           }
-
-          return placeholder
+        } else if (loading.value && options.loadingComponent) {
+          // 如果异步组件正在加载，且用户配置了 loadingComponent 时才展示 Loading 组件
+          return { type: options.loadingComponent }
         }
+
+        return placeholder
       }
     }
-  }
-
-  return {
-    render
   }
 }
 
@@ -893,13 +906,13 @@ const KeepAlive = {
     exclude: RegExp
   },
 
-  setup (props, { slots }) {
+  setup(props, { slots }) {
     // 当前 KeepAlive 组件的实例
     const instance = currentInstance
-    // 对于 KeepAlive 组件来说，它的实例上存在特殊的 KeepAliveCtx 对象，
+    // 对于 KeepAlive 组件来说，它的实例上存在特殊的 keepAliveCtx 对象，
     // 该对象由渲染器注入
     // 该对象会暴露渲染器的一些内部方法，其中 move() 函数用来将一段 DOM 移动到另外一个容器中
-    const { move, createElement } = instance.KeepAliveCtx
+    const { move, createElement } = instance.keepAliveCtx
 
     // 创建隐藏容器
     const storageContainer = createElement('div')
@@ -958,9 +971,9 @@ const KeepAlive = {
 const Teleport = {
   __isTeleport: true,
 
-  process (n1, n2, container, anchor, internals) {
+  process(n1, n2, container, anchor, internals) {
     // 通过 internals 参数取得渲染器的内部方法
-    const { patch } = internals
+    const { patch, patchChildren, move } = internals
     // 如果旧 VNode n1 不存在，则是全新的挂载，否则执行更新
     if (!n1) {
       // 挂载
@@ -994,15 +1007,15 @@ const renderer = createRenderer({
     return document.createElement(tag)
   },
   // 用于设置元素的文本节点
-  setElementText (el, text) {
+  setElementText(el, text) {
     el.textContent = text
   },
   // 用于在给定的 parent 下添加指定元素
-  insert (el, parent, anchor = null) {
+  insert(el, parent, anchor = null) {
     parent.insertBefore(el, anchor)
   },
   // 将属性设置相关的操作封装到 patchProps 函数中，并作为渲染器选项传递
-  patchProps (el, key, prevValue, nextValue, shouldSetAsProps) {
+  patchProps(el, key, prevValue, nextValue, shouldSetAsProps) {
     if (/^on/.test(key)) {
       const invokers = el._vei || (el._vei = {})
       let invoker = invokers[key]
@@ -1056,7 +1069,7 @@ const renderer = createRenderer({
     }
   },
   // 创建文本节点
-  createText (text) {
+  createText(text) {
     return document.createTextNode(text)
   },
   // 设置文本节点的内容
@@ -1064,11 +1077,11 @@ const renderer = createRenderer({
     el.nodeValue = text
   },
   // 创建注释节点
-  createComment (comment) {
+  createComment(comment) {
     return document.createComment(comment)
   },
   // 设置注释节点的内容
-  setComment (el, text) {
+  setComment(el, text) {
     el.nodeValue = text
   }
 })

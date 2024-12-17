@@ -97,7 +97,7 @@ function getSequence (arr) {
   return result
 }
 
-function resolveProps (options, propsData) {
+function resolveProps (options={}, propsData={}) {
   const props = {}
   const attrs = {}
 
@@ -486,7 +486,9 @@ function createRenderer (options) {
         if (state && k in state) {
           state[k] = v
         } else if (k in props) {
-          props[k] = v
+          // props[k] = v
+          // 不允许修改父组件数据
+          console.warn(`Attempting to mutate prop "${k}". Props are readonly.`)
         } else if (k in setupState) {
           // 渲染上下文需要增加对 setupState 的支持
           setupState[k] = v
@@ -527,7 +529,7 @@ function createRenderer (options) {
         // 当 isMounted 为 true 时，说明组件已经被挂载了，只需要完成自更新即可，
         // 所以在调用 patch() 函数时，第一个参数为组件上一次渲染的子树，
         // 意思是：使用新的子树与上一次渲染的子树进行打补丁操作
-        patch(vnode.subTree, subTree, container, anchor)
+        patch(instance.subTree, subTree, container, anchor)
 
         // 在这里调用 updated() 钩子
         updated && updated.call(renderContext)
@@ -763,124 +765,131 @@ function createRenderer (options) {
     }
   }
 
-  // 用于定义一个异步组件
-  function defineAsyncComponent (options) {
-    // options 可以是加载器，也可以是配置项
-    if (typeof options === 'function') {
-      // 如果 options 是加载器，则将其格式化为配置项形式
-      options = {
-        loader: options
-      }
-    }
+  return {
+    render
+  }
+}
 
-    const { loader } = options
 
-    // 一个用于存储异步加载的组件
-    let InnerComp = null
-
-    // 记录重试次数
-    let retries = 0
-
-    // 封装 load 函数用来加载异步组件
-    function load () {
-      return loader()
-        // 捕获加载器的错误
-        .catch(err => {
-          // 如果用户指定了 onError 回调，则将控制权交给用户
-          if (options.onError) {
-            return new Promise((resolve, reject) => {
-              // 重试
-              const retry = () => {
-                resolve(load())
-                retries++
-              }
-              // 失败
-              const fail = () => reject(err)
-
-              // 作为 onError 回调函数的参数，让用户来决定下一步怎么做
-              options.onError(retry, fail, retries)
-            })
-          } else {
-            throw err
-          }
-        })
-    }
-
-    // 返回一个包装组件
-    return {
-      name: 'AsyncComponentWrapper',
-      setup () {
-        // 异步组件是否加载成功
-        const loaded = ref(false)
-        // 定义 error，当错误发生时，用户存储错误对象
-        const error = shallowRef(null)
-        // 定义 loading 表示是否正在加载
-        const loading = ref(false)
-
-        let loadingTimer = null
-
-        if (options.delay) {
-          // 如果有设置 delay，则开启定时器
-          loadingTimer = setTimeout(() => {
-            loading.value = true
-          }, options.delay)
-        } else {
-          loading.value = true
-        }
-
-        // 调用 load 函数加载组件
-        load().then(c => {
-          InnerComp = c
-          loader.value = true
-        })
-        // 添加 catch 语句来捕获加载过程中的错误
-        .catch(err => error.value = err)
-        .finally(() => {
-          loading.value = false
-          // 加载完毕后，无论成功与否都需要清除延迟定时器
-          clearTimeout(loadingTimer)
-        })
-
-        let timer = null
-
-        if (options.timeout) {
-          // 如果指定了超时时长，则开启一个定时器计时
-          timer = setTimeout(() => {
-            // 超时后创建一个错误对象，并复制给 error.value
-            error.value = new Error(`Async component timed out after ${options.timeout}ms.`)
-          }, options.timeout)
-        }
-        // 包装组件被卸载组清除定时器
-        onUnmounted(() => clearTimeout(timer))
-
-        // 占位内容
-        const placeholder = { type: VNODE_TYPES.Text, children: '' }
-
-        return () => {
-          if (loaded.value) {
-            // 如果组件异步加载成功，则渲染被加载的组件
-            return { type: InnerComp }
-          } else if (error.value && options.errorComponent) {
-            // 只有当错误存在且用户配置了 errorComponent 时才展示 Error 组件，同时将 error 作为 props 传递
-            return {
-              type: options.errorComponent,
-              props: {
-                error: error.value
-              }
-            }
-          } else if (loading.value && options.loadingComponent) {
-            // 如果异步组件正在加载，且用户配置了 loadingComponent 时才展示 Loading 组件
-            return { type: options.loadingComponent }
-          }
-
-          return placeholder
-        }
-      }
+// 用于定义一个异步组件
+function defineAsyncComponent (options) {
+  // options 可以是加载器，也可以是配置项
+  if (typeof options === 'function') {
+    // 如果 options 是加载器，则将其格式化为配置项形式
+    options = {
+      loader: options
     }
   }
 
+  const { loader } = options
+
+  // 一个用于存储异步加载的组件
+  let InnerComp = null
+
+  // 记录重试次数
+  let retries = 0
+
+  // 封装 load 函数用来加载异步组件
+  function load () {
+    return loader()
+      // 捕获加载器的错误
+      .catch(err => {
+        // 如果用户指定了 onError 回调，则将控制权交给用户
+        if (options.onError) {
+          return new Promise((resolve, reject) => {
+            // 重试
+            const retry = () => {
+              resolve(load())
+              retries++
+            }
+            // 失败
+            const fail = () => reject(err)
+
+            // 作为 onError 回调函数的参数，让用户来决定下一步怎么做
+            options.onError(retry, fail, retries)
+          })
+        } else {
+          throw err
+        }
+      })
+  }
+
+  // 返回一个包装组件
   return {
-    render
+    name: 'AsyncComponentWrapper',
+    setup () {
+      // 异步组件是否加载成功
+      const loaded = ref(false)
+      // 定义 error，当错误发生时，用户存储错误对象
+      // const error = shallowRef(null)
+      const error = ref(null)
+      // 定义 loading 表示是否正在加载
+      const loading = ref(false)
+
+      let loadingTimer = null
+
+      if (options.delay) {
+        // 如果有设置 delay，则开启定时器
+        loadingTimer = setTimeout(() => {
+          loading.value = true
+        }, options.delay)
+      } else {
+        loading.value = true
+      }
+
+      // 调用 load 函数加载组件
+      load().then(c => {
+        try {
+          InnerComp = c.default
+        } catch (err) {
+          error.value = err
+        }
+        loaded.value = true
+      })
+      // 添加 catch 语句来捕获加载过程中的错误
+      .catch(err => error.value = err)
+      .finally(() => {
+        loading.value = false
+        // 加载完毕后，无论成功与否都需要清除延迟定时器
+        clearTimeout(loadingTimer)
+      })
+
+      let timer = null
+
+      if (options.timeout) {
+        // 如果指定了超时时长，则开启一个定时器计时
+        timer = setTimeout(() => {
+          // 超时后创建一个错误对象，并复制给 error.value
+          error.value = new Error(`Async component timed out after ${options.timeout}ms.`)
+        }, options.timeout)
+      }
+      // remark: 组件卸载方法未实现
+      // 包装组件被卸载组清除定时器
+      // onUnmounted(() => clearTimeout(timer))
+
+      // 占位内容
+      const placeholder = { type: VNODE_TYPES.Text, children: '' }
+
+      return () => {
+        if (loaded.value) {
+          // 如果组件异步加载成功，则渲染被加载的组件
+          return { type: InnerComp }
+        } else if (error.value && options.errorComponent) {
+          // 只有当错误存在且用户配置了 errorComponent 时才展示 Error 组件，同时将 error 作为 props 传递
+          return {
+            type: options.errorComponent,
+            props: {
+              error: error.value
+            }
+          }
+        } else if (loading.value && options.loadingComponent) {
+          // 如果异步组件正在加载，且用户配置了 loadingComponent 时才展示 Loading 组件
+          return { type: options.loadingComponent }
+        }
+
+        return placeholder
+      }
+    }
   }
 }
 
@@ -922,10 +931,10 @@ const KeepAlive = {
   setup (props, { slots }) {
     // 当前 KeepAlive 组件的实例
     const instance = currentInstance
-    // 对于 KeepAlive 组件来说，它的实例上存在特殊的 KeepAliveCtx 对象，
+    // 对于 KeepAlive 组件来说，它的实例上存在特殊的 keepAliveCtx 对象，
     // 该对象由渲染器注入
     // 该对象会暴露渲染器的一些内部方法，其中 move() 函数用来将一段 DOM 移动到另外一个容器中
-    const { move, createElement } = instance.KeepAliveCtx
+    const { move, createElement } = instance.keepAliveCtx
 
     // 创建隐藏容器
     const storageContainer = createElement('div')
@@ -986,7 +995,7 @@ const Teleport = {
 
   process (n1, n2, container, anchor, internals) {
     // 通过 internals 参数取得渲染器的内部方法
-    const { patch } = internals
+    const { patch, patchChildren, move } = internals
     // 如果旧 VNode n1 不存在，则是全新的挂载，否则执行更新
     if (!n1) {
       // 挂载
