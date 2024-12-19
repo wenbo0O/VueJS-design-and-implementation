@@ -33,18 +33,84 @@ const dump = (node, indent = 0) => {
   }
 }
 
-// 转换标签节点
-const tranformElement = node => {
-  if (node.type === 'Element' && node.tag === 'p') {
-    node.tag = 'h1'
+// 辅助函数，用来创建 StringLiteral 节点
+const createStringLiteral = value => ({ type: 'StringLiteral', value })
+// 辅助函数，用来创建 Identifier 节点
+const createIndentifier = name => ({ type: 'Identifier', name })
+// 辅助函数，用来创建 ArrayExpression 节点
+const createArrayExpression = elements => ({ type: 'ArrayExpression', elements })
+// 辅助函数，用来创建 CallExpression 节点
+const createCallExpression = (callee, arguments) => ({
+  type: 'CallExpression',
+  callee: createIndentifier(callee),
+  arguments
+})
+
+// 转换 Root 根节点
+const transformRoot = node => {
+  // 将逻辑写到退出阶段的回调函数中
+  return () => {
+    if (node.type !== 'Root') return
+
+    // node 是根节点，根节点的第一个子节点就是模板的根节点
+    // 当然，这里我们暂时不考虑存在多个根节点的情况
+    const vnodeJSAST = node.children[0].jsNode
+    // 创建 render 函数的声明语句节点，将 vnodeJSAST 作为 render 函数体的返回语句
+    node.jsNode = {
+      type: 'FunctionDecl',
+      id: createIndentifier('render'),
+      params: [],
+      body: [
+        {
+          type: 'ReturnStatement',
+          return: vnodeJSAST
+        }
+      ]
+    }
   }
 }
-// 转换文本节点
-const tranformText = (node, context) => {
-  if (node.type === 'Text') {
-    // 移除文本节点
-    context.removeNode()
+
+// 转换标签节点
+const tranformElement = node => {
+  // 将代码编写在退出阶段的回调函数中，
+  // 这样可以保证该标签节点的子节点全部被处理完毕
+  return () => {
+    // 如果被转换的不是元素节点，则什么都不做
+    if (node.type !== 'Element') return
+
+    // 1. 创建 h 函数调用语句
+    // h 函数调用的第一个参数是标签名称，因此我们以 node.tag 来创建一个字符串字面量节点
+    // 作为第一个参数
+    const callExp = createCallExpression('h', [
+      createStringLiteral(node.tag)
+    ])
+
+    // 2. 处理 h 函数调用的参数
+    node.children.length === 1
+      // 如果当前标签节点只有一个子节点，则直接使用子节点的 jsNode 作为参数
+      ? callExp.arguments.push(node.children[0].jsNode)
+      // 如果有多个子节点，则创建一个 ArrayExpression 节点作为参数
+      : callExp.arguments.push(
+        // 数组的每个元素都是子节点的 jsNode
+        createArrayExpression(node.children.map(c => c.jsNode))
+      )
+
+    // 3. 将当前标签节点对应的 JavaScript AST 添加到 jsNode 属性下
+    node.jsNode = callExp
   }
+}
+
+// 转换文本节点
+const tranformText = node => {
+  // 如果不是文本节点，则什么都不做
+  if (node.type !== 'Text') {
+    return
+  }
+
+  // 文本节点对应的 JavaScript AST 节点其实就是一个字符串字面量
+  // 因此只需要使用 node.content 创建一个 StringLiteral 类型的节点即可
+  // 最后将文本节点对应的 JavaScript AST 节点添加到 node.jsNode 属性下
+  node.jsNode = createStringLiteral(node.content)
 }
 
 // 接收模板字符串作为参数，并将模板切割为 Token 返回
@@ -249,6 +315,7 @@ function traverseNode (ast, context) {
   for (let i = 0; i < transforms.length; i++) {
     // 2. 转换函数可以返回另外一个函数，该函数即作为退出阶段的回调函数
     const onExit = transforms[i](context.currentNode, context)
+    // remark： 在此过滤掉了无返回值的自定义转换函数，如 tranformText
     if (onExit) {
       // 将退出阶段的回调函数添加到 exitFns 数组中
       exitFns.push(onExit)
@@ -310,6 +377,7 @@ function transform (ast) {
 
     // 注册 nodeTransforms 数组
     nodeTransforms: [
+      transformRoot, // transformRoot 函数用来转换根节点
       tranformElement, // transformElement 函数用来转换标签节点
       tranformText // transformText 函数用来转换文本节点
     ]
@@ -319,4 +387,154 @@ function transform (ast) {
   traverseNode(ast, context)
   // 打印 AST 信息
   dump(ast)
+}
+
+/**
+ * 
+ * @param {ASTNode}
+ * @returns `
+    function render () {
+      return h('div', [h('p', 'Vue'), h('p', 'Template')])
+    }
+    `
+ */
+function generate (node) {
+  const context = {
+    // 存储最终生成的渲染函数代码
+    code: '',
+    // 在生成代码码，通过调用 push 函数完成代码的拼接
+    push (code, logger) {
+      logger && console.log('🚀: ~ push:', logger);
+      console.log(code);
+      context.code += code
+    },
+    // 当前缩进级别，初始值为 0，即没有缩进
+    currentIndent: 0,
+    // 该函数用来换行，即在代码字符串的后面追加 \n 字符，
+    // 另外，换行 时应该保留缩进，所以我们还要追加 currentIndent * 2 个空格字符
+    newline () {
+      context.push('\n' + `  `.repeat(context.currentIndent))
+    },
+    // 用来缩进，即让 currentIndex 自增后，调用换行函数
+    indent () {
+      context.currentIndent++
+      context.newline()
+    },
+    // 取消缩进，即让 currentIndent 自减后，调用换行函数
+    deIndent () {
+      context.currentIndent--
+      context.newline()
+    }
+  }
+
+  // 调用 genNode 函数完成代码生成的工作
+  genNode(node, context)
+
+  // 返回渲染函数代码
+  return context.code
+}
+
+function genNode (node, context) {
+  switch (node.type) {
+    case 'FunctionDecl':
+      genFunctionDecl(node, context)
+      break
+    case 'ReturnStatement':
+      genReturnStatement(node, context)
+      break
+    case 'CallExpression':
+      genCallExpression(node, context)
+      break
+    case 'StringLiteral':
+      genStringLiteral(node, context)
+      break
+    case 'ArrayExpression':
+      genArrayExpression(node, context)
+      break
+    default:
+      break
+  }
+}
+
+function genNodeList (nodes, context) {
+  const { push } = context
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]
+    genNode(node, context)
+    // remark：避免给最后一个参数加上了','
+    if (i < nodes.length - 1) {
+      push(`, `, 'genNodeList')
+    }
+  }
+}
+
+function genFunctionDecl (node, context) {
+  const {
+    push,
+    indent,
+    deIndent
+  } = context
+
+  // node.id 是一个标识符，用来描述函数的名称，即 node.id.name
+  push(`function ${node.id.name}`, 'genFunctionDecl')
+  push(` (`)
+  // 调用 genNodeList 为函数的参数生成代码
+  genNodeList(node.params, context)
+  push(`) `)
+  push(`{`)
+  // 缩进
+  indent()
+  // 为函数体生成代码，这里递归地调用了 genNode 函数
+  node.body.forEach(n => genNode(n, context))
+  // 取消缩进
+  deIndent()
+  push(`}`)
+}
+
+function genArrayExpression (node, context) {
+  const { push } = context
+
+  // 追加方括号
+  push('[', 'genArrayExpression')
+  // 调用 genNodeList 为数组元素生成代码
+  genNodeList(node.elements, context)
+  // 补全方括号
+  push(']')
+}
+
+function genReturnStatement (node, context) {
+  const { push } = context
+  push(`return `, 'genReturnStatement')
+  // 调用 genNode 函数递归地生成返回值代码
+  genNode(node.return, context)
+}
+
+function genStringLiteral (node, context) {
+  const { push } = context
+  // 对于字符串字面量，只需要追加与 node.value 对应的字符串即可
+  push(`'${node.value}'`, 'genStringLiteral')
+}
+
+function genCallExpression (node, context) {
+  const { push } = context
+  // 取得被调用函数名称和参数列表
+  const { callee, arguments: args } = node
+  // 生成函数调用代码
+  push(`${callee.name}(`, 'genCallExpression')
+  // 调用 genNodeList 生成参数代码
+  genNodeList(args, context)
+  // 补全括号
+  push(`)`)
+}
+
+function compile (template) {
+  // 模板 AST
+  const ast = parse(template)
+  // 将模板 AST 转换为 JavaScript AST
+  transform(ast)
+  // 代码生成
+  console.log('🚀: ~ compile ~ ast.jsNode:', ast.jsNode)
+  const code = generate(ast.jsNode)
+
+  return code
 }

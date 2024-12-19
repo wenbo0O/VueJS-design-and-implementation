@@ -44,9 +44,17 @@ const tranformText = (node, context) => {
   if (node.type === 'Text') {
     // 移除文本节点
     context.removeNode()
+    
+    // 如果当前转换的节点是文本节点，则调用 context.replaceNode 函数将其替换为元素节点
+    // context.replaceNode({
+    //   type: 'Element',
+    //   tag: 'span'
+    // })
   }
 }
 
+// remark：代码循环流程参考图 15-8 解析器的状态机图
+//  3 4 6 双线代表此时状态机是一个合法的 Token
 // 接收模板字符串作为参数，并将模板切割为 Token 返回
 function tokenize (str) {
   // 状态机的当前状态：初始状态

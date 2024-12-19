@@ -1,58 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 </head>
+
 <body>
-  <script src="3.js"></script>
+  <!--
+    1. vuejs模板编译器先进行词法分析和语法分析，得到模板 AST。
+    2. 接着，将模板 AST 转换（transform）成 JavaScript AST。
+    3. 最后，根据 JavaScript AST 生成 JavaScript 代码，即渲染函数代码
+    模板ast -> transform(ast) -> javascript AST -> generate(JSAST) -> 渲染函数
+  -->
+  <!-- <script src="1.js"></script> -->
+
+  <!-- 
+    token list 的实现
+    标记化（tokenized）有限自动机，也可以使用正则表达式实现
+    动态改变currentState值，通过字符串逐个遍历以< > / 为标签符号，以a-zA-Z为标签名称和文本进行缓存截取
+    流程图参考 15-8 解析器的状态机图
+  -->
+  <!-- <script>
+    const tokens = tokenize(`<p>Vue</p>`)
+    console.log(tokens)
+    /* [
+      {
+        "type": "tag",
+        "name": "p"
+      },
+      {
+        "type": "text",
+        "content": "Vue"
+      },
+      {
+        "type": "tagEnd",
+        "name": "p"
+      }
+    ] */
+
+    const tokens2 = tokenize(`<div><p>Vue</p><p>Template</p></div>`)
+    console.log(tokens2)
+    /* [
+      { type: 'tag', name: 'div' },           // div 开始标签节点
+      { type: 'tag', name: 'p' },             // p 开始标签节点
+      { type: 'text', content: 'Vue' },       // 文本节点
+      { type: 'tagEnd', name: 'p' },          // p 结束标签节点
+      { type: 'tag', name: 'p' },             // p 开始标签节点
+      { type: 'text', content: 'Template' },  // 文本节点
+      { type: 'tagEnd', name: 'p' },          // p 结束标签节点
+      { type: 'tagEnd', name: 'div' }         // div 结束标签节点
+    ] */
+  </script> -->
+  
+  <!-- 扫描 Token 列表并构建 AST 的实现 -->
+  <!-- <script>
+    // 模板ast
+    const ast = parse(`<div><p>Vue</p><p>Template</p></div>`)
+    // console.log('🚀: ~ ast:', ast)
+    /* {
+      type: 'root',
+      children: [
+        {
+          type: 'Element',
+          tag: 'div',
+          children: [
+            {
+              type: 'Element',
+              tag: 'p',
+              children: [
+                {
+                  type: 'Text',
+                  content: 'Vue'
+                }
+                // ,...
+              ]
+            }
+            // ,...
+          ]
+        }
+      ]
+    } */
+    
+    // 递归地打印 AST 中节点的信息
+    dump(ast)
+
+    console.log('--------------------------------')
+    
+    // 通过上下文方法转换后的 AST
+    transform(ast)
+  </script> -->
+  
+  <!-- 
+    更加理想的转换工作流，可在子节点退出阶段对父节点进行处理
+    把子节点的转换方法先暂存起来，等当前兄弟节点处理完成之后逆序执行 exitFns
+  -->
+  <script src="2.js"></script>
+
+  <!-- 通过 transform(ast) 转为 可以描述渲染函数的 javascript AST -->
+  <!-- ast.jsNode 生成渲染函数 -->
   <script>
-    // const tokens = tokenize(`<p>Vue</p>`)
-    // console.log(tokens)
-    // // [
-    // //   {
-    // //     "type": "tag",
-    // //     "name": "p"
-    // //   },
-    // //   {
-    // //     "type": "text",
-    // //     "content": "Vue"
-    // //   },
-    // //   {
-    // //     "type": "tagEnd",
-    // //     "name": "p"
-    // //   }
-    // // ]
-
-    // const tokens = tokenize(`<div><p>Vue</p><p>Template</p></div>`)
-    // console.log(tokens)
-    // // [
-    // //   { type: 'tag', name: 'div' },           // div 开始标签节点
-    // //   { type: 'tag', name: 'p' },             // p 开始标签节点
-    // //   { type: 'text', content: 'Vue' },       // 文本节点
-    // //   { type: 'tagEnd', name: 'p' },          // p 结束标签节点
-    // //   { type: 'tag', name: 'p' },             // p 开始标签节点
-    // //   { type: 'text', content: 'Template' },  // 文本节点
-    // //   { type: 'tagEnd', name: 'p' },          // p 结束标签节点
-    // //   { type: 'tagEnd', name: 'div' }         // div 结束标签节点
-    // // ]
-
-    // const ast = parse(`<div><p>Vue</p><p>Template</p></div>`)
-    // console.log(ast)
-
-    // const ast = parse(`<div><p>Vue</p><p>Template</p></div>`)
-    // dump(ast)
-
-    // const ast = parse(`<div><p>Vue</p><p>Template</p></div>`)
-    // transform(ast)
-
-    // const ast = parse(`<div><p>Vue</p><p>Template</p></div>`)
-    // transform(ast)
-
     const code = compile(`<div><p>Vue</p><p>Template</p></div>`)
     console.log(code)
   </script>
 </body>
+
 </html>
