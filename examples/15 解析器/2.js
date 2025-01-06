@@ -19,7 +19,7 @@ const namedCharacterReference = {
 }
 
 // 解析器函数，接收模板作为参数
-function parse (str) {
+function parse(str) {
   // 定义上下文对象
   const context = {
     // source 是模板内容，用于在解析过程中进行消费
@@ -27,11 +27,11 @@ function parse (str) {
     // 解析器当前处于的文本模式，初始模式为 DATA
     mode: TextModes.DATA,
     // advanceBy 函数用来消费指定数量的字符，它接收一个数字作为参数
-    advanceBy (num) {
+    advanceBy(num) {
       context.source = context.source.slice(num)
     },
     // 无论是开始标签还是结束标签，都可能存在无用的空白字符，例如 <div   >
-    advanceSpaces () {
+    advanceSpaces() {
       // 匹配空白字符
       const match = /^[\t\r\n\f ]+/.exec(context.source)
       if (match) {
@@ -55,7 +55,7 @@ function parse (str) {
   }
 }
 
-function parseChildren (context, ancestors) {
+function parseChildren(context, ancestors) {
   // 定义 nodes 数组存储子节点，它将作为最终的返回值
   let nodes = []
   // 从上下文对象中取得当前状态，包括模式 mode 和模板内容 source
@@ -63,17 +63,21 @@ function parseChildren (context, ancestors) {
 
   // 开启 while 循环，只要满足条件就会一直对字符串进行解析
   // 关于 isEnd() 后文会详细讲解
+  // remark：遇到父级节点的结束标签才会停止（但是这个思路存在问题）
   while (!isEnd(context, ancestors)) {
     let node
     // 只有 DATA 模式和 RCDATA 模式才支持插值节点的解析
     if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
       // 只有 DATA 模式才支持标签节点的解析
+      // remark: 进入图16-6 (状态2)
       if (mode === TextModes.DATA && source[0] === '<') {
         if (source[1] === '!') {
           if (source.startsWith('<!--')) {
+            // remark: 进入图16-6 (状态4)
             // 注释
             node = parseComment(context)
           } else if (source.startsWith('<![CDATA[')) {
+            // remark: 进入图16-6 (状态5)
             // CDATA
             mode = parseCDATA(context)
           }
@@ -81,10 +85,12 @@ function parseChildren (context, ancestors) {
           // 状态机遇到了闭合标签，此时应该抛出错误，因为它缺少与之对应的开始标签
           console.error('无效的结束标签')
         } else if (/[a-z]/i.test(source[1])) {
+          // remark: 进入图16-6 (状态3)
           // 标签
           node = parseElement(context, ancestors)
         }
       } else if (source.startsWith('{{')) {
+        // remark: 进入图16-6 (状态6)
         // 解析插值
         node = parseInterpolation(context)
       }
@@ -93,6 +99,7 @@ function parseChildren (context, ancestors) {
     // node 不存在，说明处于其它模式，即非 DATA 模式且非 RCDATA 模式
     // 这时一切内容都作为文本处理
     if (!node) {
+      // remark: 进入图16-6 (状态7)
       node = parseText(context)
     }
 
@@ -104,7 +111,7 @@ function parseChildren (context, ancestors) {
   return nodes
 }
 
-function parseElement (context, ancestors) {
+function parseElement(context, ancestors) {
   // 解析开始标签
   const element = parseTag(context)
 
@@ -134,7 +141,7 @@ function parseElement (context, ancestors) {
   return element
 }
 
-function parseTag (context, type = 'start') {
+function parseTag(context, type = 'start') {
   const { advanceBy, advanceSpaces } = context
 
   // 处理开始标签和结束标签的正则表达式不同
@@ -175,7 +182,7 @@ function parseTag (context, type = 'start') {
   }
 }
 
-function parseAttributes (context) {
+function parseAttributes(context) {
   const { advanceBy, advanceSpaces } = context
   const props = []
 
@@ -243,7 +250,7 @@ function parseAttributes (context) {
   return props
 }
 
-function parseText (context) {
+function parseText(context) {
   // endIndex 为文本内容的结尾索引，默认为整个模板剩余内容
   let endIndex = context.source.length
   // 寻找字符 < 的位置索引
@@ -276,7 +283,7 @@ function parseText (context) {
  * @param {string} rawText 需要被解码的文本
  * @param {boolean} asAttr 是否为属性值
  */
-function decodeHtml (rawText, asAttr = false) {
+function decodeHtml(rawText, asAttr = false) {
   let offset = 0
   const end = rawText.length
 
@@ -286,7 +293,7 @@ function decodeHtml (rawText, asAttr = false) {
   let maxCRNameLength = 0
 
   // advance 函数用于消费指定长度的文本
-  function advance (length) {
+  function advance(length) {
     offset += length
     rawText = rawText.slice(length)
   }
@@ -356,7 +363,7 @@ function decodeHtml (rawText, asAttr = false) {
         } else {
           // 如果没有找到对应的值，说明解码失败
           decodedText += '&' + name
-          advance(1+ name.length)
+          advance(1 + name.length)
         }
       } else {
         // 如果字符 & 的下一个字符不是 ASCII 字母或数字，则将字符 & 作为普通文本
@@ -368,7 +375,7 @@ function decodeHtml (rawText, asAttr = false) {
   return decodedText
 }
 
-function isEnd (context, ancestors) {
+function isEnd(context, ancestors) {
   // 当模板内容解析完毕后，停止
   if (!context.source) return true
 

@@ -1,3 +1,11 @@
+<!--
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2024-11-20 17:18:24
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2025-01-06 18:00:13
+ * @FilePath: \VueJS-design-and-implementation\examples\15 解析器\index.html
+ * @Description: 
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,24 +15,37 @@
   <title>解析器</title>
 </head>
 <body>
+  <!-- 解析属性 -->
+  <!-- <script src="./1.js"></script>
+  <script>
+    const ast = parse(`<div class="title" v-if="true">A&ltccbbbText</div>`)
+    console.log(ast)
+  </script> -->
+  
+  <!-- 解析文本与解码HTML -->
+  <!-- <script src="./2.js"></script>
+  <script>
+    const ast = parse(`<div class="title" v-if="true">A&ltccbbbText</div>`)
+    console.log(ast)
+  </script> -->
+
+  <!-- 解析10进制16进制数字字符、插值、注释文本 -->
   <script src="./3.js"></script>
   <script>
-    // const ast = parse(`<div>A&ltccbbbText</div>`)
+    const ast = parse(`<div>A&ltccbbbText</div>`)
+    console.log(ast)
 
-    // console.log(ast)
-
-    // const ast = parse(`<div>A&ltccbB&#60;bbTC&#x3c;ext</div>`)
-    // console.log(ast)
+    const ast2 = parse(`<div>A&ltccbB&#60;bbTC&#x3c;ext</div>`)
+    console.log(ast2)
     
-
-    const ast = parse(`
+    const ast3 = parse(`
       <div>
         <p>A&ltccbB&#60;bbTC&#x3c;ext</p>
         <!-- 这里是注释 -->
         <p>{{ foo.bar }}</p>
       </div>
     `)
-    console.log(ast)
+    console.log(ast3)
   </script>
 </body>
 </html>

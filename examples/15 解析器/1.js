@@ -11,7 +11,7 @@ const TextModes = {
 }
 
 // 解析器函数，接收模板作为参数
-function parse (str) {
+function parse(str) {
   // 定义上下文对象
   const context = {
     // source 是模板内容，用于在解析过程中进行消费
@@ -19,11 +19,11 @@ function parse (str) {
     // 解析器当前处于的文本模式，初始模式为 DATA
     mode: TextModes.DATA,
     // advanceBy 函数用来消费指定数量的字符，它接收一个数字作为参数
-    advanceBy (num) {
+    advanceBy(num) {
       context.source = context.source.slice(num)
     },
     // 无论是开始标签还是结束标签，都可能存在无用的空白字符，例如 <div   >
-    advanceSpaces () {
+    advanceSpaces() {
       // 匹配空白字符
       const match = /^[\t\r\n\f ]+/.exec(context.source)
       if (match) {
@@ -47,7 +47,7 @@ function parse (str) {
   }
 }
 
-function parseChildren (context, ancestors) {
+function parseChildren(context, ancestors) {
   // 定义 nodes 数组存储子节点，它将作为最终的返回值
   let nodes = []
   // 从上下文对象中取得当前状态，包括模式 mode 和模板内容 source
@@ -55,17 +55,21 @@ function parseChildren (context, ancestors) {
 
   // 开启 while 循环，只要满足条件就会一直对字符串进行解析
   // 关于 isEnd() 后文会详细讲解
+  // remark：遇到父级节点的结束标签才会停止（但是这个思路存在问题）
   while (!isEnd(context, ancestors)) {
     let node
     // 只有 DATA 模式和 RCDATA 模式才支持插值节点的解析
     if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
       // 只有 DATA 模式才支持标签节点的解析
+      // remark: 进入图16-6 (状态2)
       if (mode === TextModes.DATA && source[0] === '<') {
         if (source[1] === '!') {
-          if (source.starsWith('<!--')) {
+          if (source.startsWith('<!--')) {
+            // remark: 进入图16-6 (状态4)
             // 注释
             node = parseComment(context)
-          } else if (source.starsWith('<![CDATA[')) {
+          } else if (source.startsWith('<![CDATA[')) {
+            // remark: 进入图16-6 (状态5)
             // CDATA
             mode = parseCDATA(context)
           }
@@ -73,10 +77,12 @@ function parseChildren (context, ancestors) {
           // 状态机遇到了闭合标签，此时应该抛出错误，因为它缺少与之对应的开始标签
           console.error('无效的结束标签')
         } else if (/[a-z]/i.test(source[1])) {
+          // remark: 进入图16-6 (状态3)
           // 标签
           node = parseElement(context, ancestors)
         }
-      } else if (source.starsWith('{{')) {
+      } else if (source.startsWith('{{')) {
+        // remark: 进入图16-6 (状态6)
         // 解析插值
         node = parseInterpolation(context)
       }
@@ -85,6 +91,7 @@ function parseChildren (context, ancestors) {
     // node 不存在，说明处于其它模式，即非 DATA 模式且非 RCDATA 模式
     // 这时一切内容都作为文本处理
     if (!node) {
+      // remark: 进入图16-6 (状态7)
       node = parseText(context)
     }
 
@@ -96,7 +103,7 @@ function parseChildren (context, ancestors) {
   return nodes
 }
 
-function parseElement (context, ancestors) {
+function parseElement(context, ancestors) {
   // 解析开始标签
   const element = parseTag(context)
 
@@ -115,7 +122,7 @@ function parseElement (context, ancestors) {
   element.children = parseChildren(context, ancestors)
   ancestors.pop()
 
-  if (context.source.starsWith(`</${element.tag}`)) {
+  if (context.source.startsWith(`</${element.tag}`)) {
     // 解析结束标签
     parseTag(context, 'end')
   } else {
@@ -126,7 +133,7 @@ function parseElement (context, ancestors) {
   return element
 }
 
-function parseTag (context, type = 'start') {
+function parseTag(context, type = 'start') {
   const { advanceBy, advanceSpaces } = context
 
   // 处理开始标签和结束标签的正则表达式不同
@@ -148,7 +155,7 @@ function parseTag (context, type = 'start') {
   const props = parseAttributes(context)
 
   // 在消费匹配的内容后，如果字符串以 '/>' 开头，则说明这是一个自闭合标签
-  const isSelfClosing = context.source.starsWith('/>')
+  const isSelfClosing = context.source.startsWith('/>')
 
   // 如果是自闭合标签，则消费 '/>'，否则消费 '>'
   advanceBy(isSelfClosing ? 2 : 1)
@@ -167,14 +174,14 @@ function parseTag (context, type = 'start') {
   }
 }
 
-function parseAttributes (context) {
+function parseAttributes(context) {
   const { advanceBy, advanceSpaces } = context
   const props = []
 
   // 不断消费模板内容，直到遇到标签的 “结束部分” 为止
   while (
-    !context.source.starsWith('>') &&
-    !context.source.starsWith('/>')
+    !context.source.startsWith('>') &&
+    !context.source.startsWith('/>')
   ) {
     // 匹配属性名称
     const match = /^[^\t\r\n\f />][^\t\r\n\f />=]*/.exec(context.source)
@@ -194,7 +201,6 @@ function parseAttributes (context) {
     const quote = context.source[0]
     // 判断属性值是否被引号引用
     const isQuoted = quote === '"' || quote === "'"
-
     if (isQuoted) {
       // 属性值被引号引用
       advanceBy(1)
@@ -235,14 +241,36 @@ function parseAttributes (context) {
   return props
 }
 
-function isEnd (context, ancestors) {
+function parseText(context) {
+  const { advanceBy, advanceSpaces } = context
+  // 匹配文本内容
+  const match = /^([^\t\r\n\f<{]+)/.exec(context.source)
+  // 消费匹配内容
+  const content = match[0]
+  // 消费无用的空白字符
+  advanceBy(content.length)
+  // 返回文本节点
+  return {
+    type: 'Text',
+    content
+  }
+}
+
+function isEnd(context, ancestors) {
   // 当模板内容解析完毕后，停止
   if (!context.source) return true
 
-  // 与父级节点栈内所有节点做比较
+  // remark: 总是与栈顶的父级节点做比较
+  /* // 获取父级标签节点
+  const parent = ancestors[ancestors.length - 1]
+  // 如果遇到结束标签，并且该标签与父级标签节点同名，则停止
+  if (parent && context.source.startsWith(`</${parent.tag}`)) {
+    return true
+  } */
+  // remark: 与父级节点栈内所有节点做比较
   for (let i = ancestors.length - 1; i >= 0; i--) {
     // 只要栈中存在与当前结束标签同名的节点，就停止状态机
-    if (context.source.starsWith(`</${ancestors[i].tag}>`)) {
+    if (context.source.startsWith(`</${ancestors[i].tag}>`)) {
       return true
     }
   }
