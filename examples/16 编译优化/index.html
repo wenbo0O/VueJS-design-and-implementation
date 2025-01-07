@@ -1,0 +1,35 @@
+<!--
+ * @Author: huwb 15001206751@139.com
+ * @Date: 2025-01-06 18:12:01
+ * @LastEditors: huwb 15001206751@139.com
+ * @LastEditTime: 2025-01-07 11:28:05
+ * @FilePath: \VueJS-design-and-implementation\examples\16 编译优化\index.html
+ * @Description: 
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>16 编译优化</title>
+</head>
+<body>
+  <script src="./1.js"></script>
+  <h3>靶向更新 区分动态节点和静态节点</h3>
+  
+  <dl>
+    <dt><h4>动态节点采用 Block 虚拟节点代替 createVNode</h4></dt>
+    <dd><p>区别于多出一个 dynamicChildren 数组，用来收集动态节点，实现靶向更新</p></dd>
+    <dd><p>给动态节点添加 PatchFlags 值为1 textContent, 2 class, 3 style, 4... 代表不同的动态标记，diff时直接更新靶向更新</p></dd>
+  </dl>
+  
+  <dl>
+    <dt><h4>静态节点采用静态提升</h4></dt>
+    <dd><p>静态提升：把静态节点提升到渲染函数之外，形成引用关系，重新执行渲染函数时避免重新创建静态节点</p></dd>
+    <dd><p>预字符串化：有大量连续纯静态的标签节点时，采用 createStaticVNode 将多个节点字符串一并提升</p></dd>
+    <dd><p>缓存内联事件处理函数：利用 render 函数的第二个参数 cache 数组，进行 cache[0] || (cache[0]=e=>()) 缓存，避免重新创建</p></dd>
+    <dd><p>v-once 指令：与处理事件缓存类似，利用 cache[1] || (cache[1]=createVNode()) 进行虚拟DOM缓存，避免无用的diff计算 </p></dd>
+  </dl>
+</body>
+</html>

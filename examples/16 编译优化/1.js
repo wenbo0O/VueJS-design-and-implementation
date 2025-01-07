@@ -9,11 +9,11 @@ const dynamicChildrenStack = []
 // 当前动态节点集合
 let currentDynamicChildren = null
 // 用来创建一个新的动态节点集合，并将该集合压入栈中
-function openBlock () {
+function openBlock() {
   dynamicChildrenStack.push((currentDynamicChildren = []))
 }
 // 用来将通过 openBlock 创建的动态节点集合从栈中弹出
-function closeBlock () {
+function closeBlock() {
   currentDynamicChildren = dynamicChildrenStack.pop()
 }
 
@@ -26,7 +26,7 @@ function closeBlock () {
 //   ]))
 // }
 
-function createBlock (tag, props, children) {
+function createBlock(tag, props, children) {
   // block 本质也是一个 vnode
   const block = createVNode(tag, props, children)
   // 将当前动态节点集合作为 block.dynamicChildren
@@ -38,10 +38,10 @@ function createBlock (tag, props, children) {
   return block
 }
 
-function createVNode (tag, props, children, flags) {
+function createVNode(tag, props, children, flags) {
   const key = props && props.key
   props && delete props.key
-  
+
   const vnode = {
     tag,
     props,
@@ -58,21 +58,33 @@ function createVNode (tag, props, children, flags) {
   return vnode
 }
 
-function patchElement (n1, n2) {
+function patchElement(n1, n2) {
   const el = n2.el = n1.el
   const oldProps = n1.props
   const newProps = n2.props
 
-
-  // 第一步：更新 props
-  for (const key in newProps) {
-    if (newProps[key] !== oldProps[key]) {
-      patchProps(el, key, oldProps[key], newProps[key])
+  if (n2.patchFlags) {
+    // 靶向更新
+    if (n2.patchFlags === 1) {
+      // 只需要更新 text
+    } else if (n2.patchFlags === 2) {
+      // 只需要更新 class
+    } else if (n2.patchFlags === 3) {
+      // 只需要更新 style
     }
-  }
-  for (const key in oldProps) {
-    if (!key in newProps) {
-      patchProps(el, key, oldProps[key], null)
+  } else {
+    // 全量更新
+
+    // 第一步：更新 props
+    for (const key in newProps) {
+      if (newProps[key] !== oldProps[key]) {
+        patchProps(el, key, oldProps[key], newProps[key])
+      }
+    }
+    for (const key in oldProps) {
+      if (!key in newProps) {
+        patchProps(el, key, oldProps[key], null)
+      }
     }
   }
 
@@ -85,7 +97,7 @@ function patchElement (n1, n2) {
   }
 }
 
-function patchBlockChildren (n1, n2) {
+function patchBlockChildren(n1, n2) {
   // 只更新动态节点即可
   for (let i = 0; i < n2.dynamicChildren.length; i++) {
     patchElement(n1.dynamicChildren[i], n2.dynamicChildren[i])
