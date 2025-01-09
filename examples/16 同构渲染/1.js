@@ -1,10 +1,11 @@
-const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'
+const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',')
 
-const VNODE_TYPES = {
-  Text: Symbol(),
-  Comment: Symbol(),
-  Fragment: Symbol()
-}
+// ../13 内建组件和模块/3.js
+// const VNODE_TYPES = {
+//   Text: Symbol(),
+//   Comment: Symbol(),
+//   Fragment: Symbol()
+// }
 
 const shouldIgnoreProp = ['key', 'ref']
 
@@ -19,9 +20,9 @@ const isBooleanAttr = key => (
 ).split(',').includes(key)
 
 // 判断属性名称是否合法且安全
-const isSSRSafeAttrName = key => /[>/="'\u0009\u000a\u000c\u0020]/.test(key)
+const isSSRSafeAttrName = key => !/[>/="'\u0009\u000a\u000c\u0020]/.test(key)
 
-function renderElementVNode (vnode) {
+function renderElementVNode(vnode) {
   // 取出标签名称 tag 和标签属性 props，以及标签的子节点
   const { type: tag, props, children } = vnode
 
@@ -58,8 +59,8 @@ function renderElementVNode (vnode) {
   return ret
 }
 
-function renderAttrs (props) {
-  let ref = ''
+function renderAttrs(props) {
+  let ret = ''
   for (const key in props) {
     if (
       // 检测属性名称，如果是事件或应该被忽略的属性，则忽略它
@@ -73,9 +74,10 @@ function renderAttrs (props) {
     // 调用 renderDynamicAttr 完成属性的渲染
     ret += renderDynamicAttr(key, value)
   }
+  return ret
 }
 
-function renderDynamicAttr (key, value) {
+function renderDynamicAttr(key, value) {
   if (isBooleanAttr(key)) {
     // boolean attribute，如果值为 false 则无须渲染内容，否则只需要渲染 key 即可
     return value === false ? '' : `${key}`
@@ -92,7 +94,7 @@ function renderDynamicAttr (key, value) {
   }
 }
 
-function escapeHtml (string) {
+function escapeHtml(string) {
   const str = '' + string
   const match = escapeRE.exec(str)
 
@@ -137,7 +139,20 @@ function escapeHtml (string) {
     : html
 }
 
-function renderComponentVNode (vnode) {
+// 渲染组件为html字符串 (初始版本)
+function renderComponentVNodePrev(vnode) {
+  // 获取 setup 组件选项
+  let { type: { setup } } = vnode
+  // 执行 setup 函数得到渲染函数 render
+  const render = setup()
+  // 执行渲染函数得到 subTree，即组件要渲染的内容
+  const subTree = render()
+  // 调用 renderElementVNode 完成渲染，并返回其结果
+  return renderElementVNode(subTree)
+}
+
+// 渲染组件为html字符串
+function renderComponentVNode(vnode) {
   const isFunctional = typeof vnode.type === 'function'
   let componentOptions = vnode.type
   if (isFunctional) {
@@ -189,7 +204,7 @@ function renderComponentVNode (vnode) {
   if (setup) {
     const setupContext = { attrs, emit, slots }
     const prevInstance = setCurrentInstance(instance)
-    const setupResult = setup(shalloReadonly(instance.props), setupContext)
+    const setupResult = setup(shallowReadonly(instance.props), setupContext)
     setCurrentInstance(prevInstance)
     if (typeof setupResult === 'function') {
       if (render) console.error('setup 函数返回渲染函数，render 选项将被忽略')
@@ -202,7 +217,7 @@ function renderComponentVNode (vnode) {
   vnode.component = instance
 
   const renderContext = new Proxy(instance, {
-    get (t, k, r) {
+    get(t, k, r) {
       const { state, props, slots } = t
 
       if (k === '$slots') return slots
@@ -218,7 +233,7 @@ function renderComponentVNode (vnode) {
       }
     },
 
-    set (t, k, v, r) {
+    set(t, k, v, r) {
       const { state, props } = t
       if (state && k in state) {
         state[k] = v
@@ -239,7 +254,7 @@ function renderComponentVNode (vnode) {
   return renderVNode(subTree)
 }
 
-function renderVNode (vnode) {
+function renderVNode(vnode) {
   const type = typeof vnode.type
   switch (type) {
     case 'string':
@@ -250,7 +265,7 @@ function renderVNode (vnode) {
     default:
       break
   }
-  
+
   switch (vnode.type) {
     case VNODE_TYPES.Text:
       // 处理文本 ...

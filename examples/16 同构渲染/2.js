@@ -1,9 +1,9 @@
-function createRenderer (options) {
-  function hydrate (vnode, container) {
+function createRenderer(options) {
+  function hydrate(vnode, container) {
     hydrateNode(container.firstChild, vnode)
   }
 
-  function hydrateNode (node, vnode) {
+  function hydrateNode(node, vnode) {
     const { type } = vnode
     // 1. 让 vnode.el 引用真实 DOM
     vnode.el = node
@@ -23,11 +23,11 @@ function createRenderer (options) {
       }
     }
 
-    // 5. 重要：hydrateNode 函数需要返回当前节点的下一个兄弟节点，以便继续进行后续的激活操作
+    // 5. 重要： hydrateNode 函数需要返回当前节点的下一个兄弟节点，以便继续进行后续的激活操作
     return node.nextSibling
   }
 
-  function hydrateElement (el, vnode) {
+  function hydrateElement(el, vnode) {
     // 1. 为 DOM 元素添加事件
     if (vnode.props) {
       for (const key in vnode.props) {
@@ -51,7 +51,7 @@ function createRenderer (options) {
     }
   }
 
-  function mountComponent (vnode, container, anchor) {
+  function mountComponent(vnode, container, anchor) {
     // 用于检测是否是函数式组件
     const isFunctional = typeof vnode.type === 'function'
 
@@ -115,7 +115,7 @@ function createRenderer (options) {
       // 在 KeepAlive 组件实例上添加 keepAliveCtx 对象
       instance.keepAliveCtx = {
         // move 函数用于移动一段 vnode
-        move (vnode, container, anchor) {
+        move(vnode, container, anchor) {
           // 本质上是将组件渲染的内容移动到指定容器中，即隐藏容器中
           insert(vnode.component.subTree.el, container, anchor)
         },
@@ -124,7 +124,7 @@ function createRenderer (options) {
     }
 
     // 定义 emit() 函数
-    function emit (event, ...payload) {
+    function emit(event, ...payload) {
       // 根据约定对事件名称进行处理，例如 change --> onChange
       // event[0] => 'change'[0] => 'c'
       const eventName = `on${event[0].toUpperCase() + event.slice(1)}`
@@ -168,7 +168,7 @@ function createRenderer (options) {
 
     // 创建渲染上下文对象，本质上是组件实例的代理
     const renderContext = new Proxy(instance, {
-      get (t, k, r) {
+      get(t, k, r) {
         const { state, props, slots } = t
 
         // 当 k 值为 $slots 时，直接返回 slots
@@ -187,7 +187,7 @@ function createRenderer (options) {
         }
       },
 
-      set (t, k, v, r) {
+      set(t, k, v, r) {
         const { state, props } = t
         if (state && k in state) {
           state[k] = v
@@ -254,6 +254,7 @@ function createRenderer (options) {
   }
 
   return {
+    render() { },
     hydrate
   }
 }

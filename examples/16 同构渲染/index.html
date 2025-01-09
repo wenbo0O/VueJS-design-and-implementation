@@ -1,27 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My App</title>
+  <title>16 同构渲染</title>
 </head>
+
 <body>
   <div id="app"></div>
 
-  <script src="./1.js"></script>
-  <script>
+  <!-- <script src="../4 非原始值的响应式方案/8.js"></script>
+  <script src="../5 原始值的响应式方案/1.js"></script>
+  <script src="../13 内建组件和模块/3.js"></script>
+  <script src="./1.js"></script> -->
+  <!-- 
+    将虚拟 DOM 渲染为 HTML 字符串
+    1. 校验是否自闭合标签，如果是自闭合标签 仅处理属性 不需要渲染闭合部分，也不需要渲染子节点
+    2. 对文本及属性值进行xss字符串转义
+  -->
+  <!-- <script>
     const ElementVNode = {
       type: 'div',
       props: {
-        id: 'foo'
+        id: 'foo<>'
       },
       children: [
-        { type: 'p', children: 'hello' }
+        { type: 'p', children: 'hello<>' }
       ]
     }
-
     console.log(renderElementVNode(ElementVNode)) // <div id="foo"><p>hello</p></div>
+  </script> -->
+
+  <!-- 
+    将组件渲染为 HTML 字符串
+    1. 获取组件的 setup 函数并执行，得到组件所渲染的 subTree 并将其渲染为 html 字符串
+    2. 无须将数据进行响应式包装，也无须调用除 created 以外的生命钩子函数
+  -->
+  <!-- <script>
+    // 组件
+    const MyComponent = {
+      data() {
+        return {
+          msg: 'xxx'
+        }
+      },
+      setup(props, setupContext) {
+        console.log(setupContext)
+        return () => {
+          // 该组件渲染一个 div 标签
+          return {
+            type: 'div',
+            children: 'hello'
+          }
+        }
+      },
+      created(renderContext) {
+        console.log(renderContext.msg)
+      }
+    }
+    const CompVNode = {
+      type: MyComponent,
+    }
+    // const html = renderComponentVNodePrev(CompVNode)
+    const html = renderComponentVNode(CompVNode)
+    console.log(html) // 输出：<div>hello</div>
+  </script> -->
+
+  <!-- 
+    客户端激活的原理
+    1. 同构过程中组件代码会分别在服务端和浏览器各执行一次，服务端返回静态html字符串
+    2. 浏览器端需要将dom和虚拟dom进行建立联系，为元素添加事件绑定
+  -->
+  <!-- <script src="./2.js"></script>
+  <script>
+    const MyComponent = {
+      name: 'App',
+      setup() {
+        const str = ref('foo')
+
+        return () => {
+          return {
+            type: 'div',
+            children: [
+              {
+                type: 'h6',
+                children: str.value,
+                props: {
+                  onClick: () => {
+                    str.value = 'bar'
+                  }
+                }
+              },
+              { type: 'span', children: 'baz' }
+            ]
+          }
+        }
+      }
+    }
+    const CompVNode = {
+      type: MyComponent,
+    }
+    // html 代表由服务端渲染的字符串
+    const html = renderComponentVNode(CompVNode)
+
+    // 假设客户端已经拿到了由服务端渲染的字符串
+    // 获取挂载点
+    const container = document.querySelector('#app')
+    // 设置挂载点的 innerHTML，模拟由服务端渲染的内容
+    container.innerHTML = html
+
+    // 接着调用 hydrate 函数完成激活
+    createRenderer().hydrate(CompVNode, container)
+  </script> -->
+
+  <!-- 
+    编写同构的代码
+    1. 注意生命周期的执行。服务端仅调用 created 的生命钩子函数
+    2. 使用跨平台的第三方库。如 axios 等
+    3. api的兼容处理 if(import.meta.env.SSR)。如获取cookie 浏览器通过 document.cookie ；服务的服务端通过请求头获取
+    4. 避免交叉请求引起的状态污染。服务端避免使用模块级的全局变量，用户之间会造成变量污染
+    5. 仅在客户端渲染组件中的部分内容。实现<ClientOnly> 组件，利用服务端仅调用 created 的生命钩子函数的特性，对组件进行三目判断分支渲染
+  -->
+  <script type="module" src="./ClientOnly.js"></script>
+  <script>
+    const VNode = {
+      type: ClientOnly,
+      children: [
+        { type: 'xxx', children: '不支持服务端渲染的三方库等...' }
+      ]
+    }
   </script>
 </body>
+
 </html>
